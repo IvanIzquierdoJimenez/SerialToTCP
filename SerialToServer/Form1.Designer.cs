@@ -30,6 +30,7 @@
         {
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tpArduino = new System.Windows.Forms.TabPage();
+            this.btnOpenServer = new System.Windows.Forms.Button();
             this.btnRefres = new System.Windows.Forms.Button();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -57,6 +58,7 @@
             // 
             // tpArduino
             // 
+            this.tpArduino.Controls.Add(this.btnOpenServer);
             this.tpArduino.Controls.Add(this.btnRefres);
             this.tpArduino.Controls.Add(this.textBox2);
             this.tpArduino.Controls.Add(this.label2);
@@ -74,6 +76,16 @@
             this.tpArduino.TabIndex = 0;
             this.tpArduino.Text = "Arduino";
             this.tpArduino.UseVisualStyleBackColor = true;
+            // 
+            // btnOpenServer
+            // 
+            this.btnOpenServer.Location = new System.Drawing.Point(16, 35);
+            this.btnOpenServer.Name = "btnOpenServer";
+            this.btnOpenServer.Size = new System.Drawing.Size(136, 41);
+            this.btnOpenServer.TabIndex = 14;
+            this.btnOpenServer.Text = "Start Server";
+            this.btnOpenServer.UseVisualStyleBackColor = true;
+            this.btnOpenServer.Click += new System.EventHandler(this.btnOpenServer_Click);
             // 
             // btnRefres
             // 
@@ -207,6 +219,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.CheckBox cbxAllPorts;
         private System.Windows.Forms.Button btnRefres;
+        private System.Windows.Forms.Button btnOpenServer;
     }
 }
 
