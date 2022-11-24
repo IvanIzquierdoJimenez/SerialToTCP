@@ -16,6 +16,7 @@ namespace SerialToServer
     { 
 
         SerialPort serial = new SerialPort();
+        Dictionary<string, puente> puentes = new Dictionary<string, puente>();
         public Form1()
         {
             InitializeComponent();
@@ -26,22 +27,28 @@ namespace SerialToServer
         private void btnAdd_Click(object sender, EventArgs e)
         {
             lbxConnected.Items.Add((string)lbxPortsDisp.SelectedItem);
-            puente p = new puente((string)lbxPortsDisp.SelectedItem);
+            //puente p = new puente((string)lbxPortsDisp.SelectedItem);
+            puentes.Add((string)lbxPortsDisp.SelectedItem, new puente((string)lbxPortsDisp.SelectedItem));
             try
             {
                 lbxPortsDisp.Items.RemoveAt(lbxPortsDisp.SelectedIndex);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
 
         private void btnDelete_Click(object sender, EventArgs e)
         {
-            try
+            if (lbxPortsDisp.SelectedIndex.ToString() != null)
             {
                 lbxPortsDisp.Items.Add((string)lbxConnected.SelectedItem);
+                puente p = puentes[(string)lbxConnected.SelectedItem];
+                p.Disconnect();
+                puentes.Remove((string)lbxConnected.SelectedItem);
                 lbxConnected.Items.RemoveAt(lbxConnected.SelectedIndex);
             }
-            catch { }
         }
 
         void RefreshPorts()

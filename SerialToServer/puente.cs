@@ -31,7 +31,7 @@ namespace SerialToServer
 
         private void SerialToTCP()
         {
-            while (true)
+            while (serial.IsOpen)
             {
                 try
                 { 
@@ -47,7 +47,7 @@ namespace SerialToServer
 
         private void TCPToSerial()
         {
-            while (true)
+            while (serial.IsOpen)
             {
                 try
                 {
@@ -58,6 +58,12 @@ namespace SerialToServer
                     Console.WriteLine(e.ToString());
                 }
             }
+        }
+
+        public void Disconnect()
+        {
+            serial.Close();
+            c.Close();
         }
     }
 }
