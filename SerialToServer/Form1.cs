@@ -54,6 +54,15 @@ namespace SerialToServer
         void RefreshPorts()
         {
             lbxPortsDisp.Items.Clear();
+            for (int i = 0; i < lbxConnected.Items.Count; i++)
+            {
+                if (puentes.TryGetValue(lbxConnected.Items[i].ToString(), out var p))
+                {
+                    if (p.Connected) continue;
+                    puentes.Remove(lbxConnected.Items[i].ToString());
+                }
+                lbxConnected.Items.RemoveAt(i);
+            }
             foreach (string port in SerialPort.GetPortNames())
             {
                 bool exists = false;
