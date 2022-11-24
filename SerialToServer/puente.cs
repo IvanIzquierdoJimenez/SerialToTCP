@@ -16,6 +16,7 @@ namespace SerialToServer
         private TcpClient c;
         private NetworkStream network;
         private StreamReader sr;
+        public bool Connected;
         public puente(string Port)
         {
             serial = new SerialPort(Port, 115200);
@@ -23,6 +24,7 @@ namespace SerialToServer
             network = c.GetStream();
             sr = new StreamReader(network);
             serial.Open();
+            Connected = true;
             Thread SerialTCP = new Thread(SerialToTCP);
             Thread TCPSerial = new Thread(TCPToSerial);
             SerialTCP.Start();
@@ -31,7 +33,7 @@ namespace SerialToServer
 
         private void SerialToTCP()
         {
-            while (serial.IsOpen)
+            while (Connected)
             {
                 try
                 { 
@@ -40,6 +42,7 @@ namespace SerialToServer
                 }
                 catch (Exception e)
                 {
+                    Connected = false;
                     Console.WriteLine(e.ToString());
                 }
             }
@@ -47,7 +50,7 @@ namespace SerialToServer
 
         private void TCPToSerial()
         {
-            while (serial.IsOpen)
+            while (Connected)
             {
                 try
                 {
@@ -55,6 +58,7 @@ namespace SerialToServer
                 }
                 catch (Exception e)
                 {
+                    Connected = false;
                     Console.WriteLine(e.ToString());
                 }
             }
@@ -62,6 +66,8 @@ namespace SerialToServer
 
         public void Disconnect()
         {
+            if (!Connected) return;
+            Connected = false;
             serial.Close();
             c.Close();
         }
