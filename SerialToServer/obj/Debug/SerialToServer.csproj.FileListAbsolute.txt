@@ -1,0 +1,11 @@
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\bin\Debug\SerialToServer.exe.config
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\bin\Debug\SerialToServer.exe
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\bin\Debug\SerialToServer.pdb
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.csproj.AssemblyReference.cache
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.csproj.SuggestedBindingRedirects.cache
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.Form1.resources
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.Properties.Resources.resources
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.csproj.GenerateResource.cache
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.csproj.CoreCompileInputs.cache
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.exe
+C:\Users\ivan-\OneDrive\Documentos\VS2022\SerialToServer\SerialToServer\obj\Debug\SerialToServer.pdb
