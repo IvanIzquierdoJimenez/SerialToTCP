@@ -41,15 +41,17 @@
             this.btnDelete = new System.Windows.Forms.Button();
             this.btnAdd = new System.Windows.Forms.Button();
             this.lbxPortsDisp = new System.Windows.Forms.ListBox();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.tpInterface = new System.Windows.Forms.TabPage();
+            this.listBox1 = new System.Windows.Forms.ListBox();
             this.tabControl1.SuspendLayout();
             this.tpArduino.SuspendLayout();
+            this.tpInterface.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl1
             // 
             this.tabControl1.Controls.Add(this.tpArduino);
-            this.tabControl1.Controls.Add(this.tabPage2);
+            this.tabControl1.Controls.Add(this.tpInterface);
             this.tabControl1.Location = new System.Drawing.Point(3, 1);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -99,7 +101,7 @@
             // 
             // tbId
             // 
-            this.tbId.Location = new System.Drawing.Point(417, 359);
+            this.tbId.Location = new System.Drawing.Point(495, 359);
             this.tbId.Name = "tbId";
             this.tbId.Size = new System.Drawing.Size(116, 26);
             this.tbId.TabIndex = 12;
@@ -107,7 +109,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(381, 362);
+            this.label2.Location = new System.Drawing.Point(459, 362);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(30, 20);
             this.label2.TabIndex = 11;
@@ -117,7 +119,7 @@
             // 
             this.tbFabricante.Location = new System.Drawing.Point(107, 359);
             this.tbFabricante.Name = "tbFabricante";
-            this.tbFabricante.Size = new System.Drawing.Size(255, 26);
+            this.tbFabricante.Size = new System.Drawing.Size(339, 26);
             this.tbFabricante.TabIndex = 10;
             // 
             // label1
@@ -180,15 +182,25 @@
             this.lbxPortsDisp.TabIndex = 4;
             this.lbxPortsDisp.SelectedIndexChanged += new System.EventHandler(this.lbxPortsDisp_SelectedIndexChanged);
             // 
-            // tabPage2
+            // tpInterface
             // 
-            this.tabPage2.Location = new System.Drawing.Point(4, 29);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(786, 415);
-            this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "tabPage2";
-            this.tabPage2.UseVisualStyleBackColor = true;
+            this.tpInterface.Controls.Add(this.listBox1);
+            this.tpInterface.Location = new System.Drawing.Point(4, 29);
+            this.tpInterface.Name = "tpInterface";
+            this.tpInterface.Padding = new System.Windows.Forms.Padding(3);
+            this.tpInterface.Size = new System.Drawing.Size(786, 415);
+            this.tpInterface.TabIndex = 1;
+            this.tpInterface.Text = "Interface";
+            this.tpInterface.UseVisualStyleBackColor = true;
+            // 
+            // listBox1
+            // 
+            this.listBox1.FormattingEnabled = true;
+            this.listBox1.ItemHeight = 20;
+            this.listBox1.Location = new System.Drawing.Point(19, 37);
+            this.listBox1.Name = "listBox1";
+            this.listBox1.Size = new System.Drawing.Size(162, 304);
+            this.listBox1.TabIndex = 0;
             // 
             // Form1
             // 
@@ -202,6 +214,7 @@
             this.tabControl1.ResumeLayout(false);
             this.tpArduino.ResumeLayout(false);
             this.tpArduino.PerformLayout();
+            this.tpInterface.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -210,7 +223,7 @@
 
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tpArduino;
-        private System.Windows.Forms.TabPage tabPage2;
+        private System.Windows.Forms.TabPage tpInterface;
         private System.Windows.Forms.ListBox lbxConnected;
         private System.Windows.Forms.Button btnDelete;
         private System.Windows.Forms.Button btnAdd;
@@ -222,6 +235,7 @@
         private System.Windows.Forms.CheckBox cbxAllPorts;
         private System.Windows.Forms.Button btnRefres;
         private System.Windows.Forms.Button btnOpenServer;
+        private System.Windows.Forms.ListBox listBox1;
     }
 }
 
