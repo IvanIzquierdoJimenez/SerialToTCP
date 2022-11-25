@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
 using System.Diagnostics;
+using System.Management;
+using System.Xml.Linq;
 
 namespace SerialToServer
 {
@@ -18,12 +20,14 @@ namespace SerialToServer
 
         SerialPort serial = new SerialPort();
         Dictionary<string, puente> puentes = new Dictionary<string, puente>();
+        Dictionary<string, string> detailsPorts = new Dictionary<string, string>();
         Process process = new Process();
         public bool isOpen = false;
         public Form1()
         {
             InitializeComponent();
             RefreshPorts();
+            descriptPort();
             process.StartInfo.FileName = @"server.exe";
         }
 
@@ -81,12 +85,45 @@ namespace SerialToServer
                 if (!exists) lbxPortsDisp.Items.Add(port);
             }
         }
-        
+
+        private void descriptPort()
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * from WIN32_SerialPort");
+            foreach (ManagementObject port in searcher.Get())
+            {
+                detailsPorts.Add((string)port.GetPropertyValue("DeviceID"), (string)port.GetPropertyValue("Description"));
+            }
+        }
+
         private void btnRefres_Click(object sender, EventArgs e)
         {
             RefreshPorts();
-        }
+            //using (var searcher = new ManagementObjectSearcher("SELECT DeviceID, Caption, Description FROM WIN32_SerialPort"))
+            //{
+            //    string[] portnames = SerialPort.GetPortNames();
 
+            //    var ports = searcher.Get().Cast<ManagementBaseObject>()
+            //        .ToDictionary(p => p["DeviceID"].ToString(), p => p["Description"]);
+
+
+            //    foreach (string name in portnames)
+            //    {
+            //        if (ports.TryGetValue(name, out var Description))
+            //        {
+            //            MessageBox.Show($"{name} - {Description}");
+            //        }
+            //        else
+            //        {
+            //            MessageBox.Show(name);
+            //        }
+            //    }
+            //}
+            //ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * from WIN32_SerialPort");
+            //foreach (ManagementObject port in searcher.Get())
+            //{
+            //    tbFabricante.Text = (string)port.GetPropertyValue("Description");
+            //}
+        }
         private void btnOpenServer_Click(object sender, EventArgs e)
         {
             if (!isOpen)
@@ -101,6 +138,13 @@ namespace SerialToServer
                 btnOpenServer.Text = "Start Server";
                 isOpen = false;
             }
+        }
+
+        private void lbxPortsDisp_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            ListBox lbx = (ListBox)sender;
+            string puerto = lbx.SelectedItem.ToString();
+            tbFabricante.Text = detailsPorts[puerto];
         }
     }
 }

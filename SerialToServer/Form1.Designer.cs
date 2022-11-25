@@ -32,9 +32,9 @@
             this.tpArduino = new System.Windows.Forms.TabPage();
             this.btnOpenServer = new System.Windows.Forms.Button();
             this.btnRefres = new System.Windows.Forms.Button();
-            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.tbId = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.tbFabricante = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.cbxAllPorts = new System.Windows.Forms.CheckBox();
             this.lbxConnected = new System.Windows.Forms.ListBox();
@@ -60,9 +60,9 @@
             // 
             this.tpArduino.Controls.Add(this.btnOpenServer);
             this.tpArduino.Controls.Add(this.btnRefres);
-            this.tpArduino.Controls.Add(this.textBox2);
+            this.tpArduino.Controls.Add(this.tbId);
             this.tpArduino.Controls.Add(this.label2);
-            this.tpArduino.Controls.Add(this.textBox1);
+            this.tpArduino.Controls.Add(this.tbFabricante);
             this.tpArduino.Controls.Add(this.label1);
             this.tpArduino.Controls.Add(this.cbxAllPorts);
             this.tpArduino.Controls.Add(this.lbxConnected);
@@ -97,28 +97,28 @@
             this.btnRefres.UseVisualStyleBackColor = true;
             this.btnRefres.Click += new System.EventHandler(this.btnRefres_Click);
             // 
-            // textBox2
+            // tbId
             // 
-            this.textBox2.Location = new System.Drawing.Point(326, 359);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(116, 26);
-            this.textBox2.TabIndex = 12;
+            this.tbId.Location = new System.Drawing.Point(417, 359);
+            this.tbId.Name = "tbId";
+            this.tbId.Size = new System.Drawing.Size(116, 26);
+            this.tbId.TabIndex = 12;
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(290, 362);
+            this.label2.Location = new System.Drawing.Point(381, 362);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(30, 20);
             this.label2.TabIndex = 11;
             this.label2.Text = "ID:";
             // 
-            // textBox1
+            // tbFabricante
             // 
-            this.textBox1.Location = new System.Drawing.Point(107, 359);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(148, 26);
-            this.textBox1.TabIndex = 10;
+            this.tbFabricante.Location = new System.Drawing.Point(107, 359);
+            this.tbFabricante.Name = "tbFabricante";
+            this.tbFabricante.Size = new System.Drawing.Size(255, 26);
+            this.tbFabricante.TabIndex = 10;
             // 
             // label1
             // 
@@ -178,6 +178,7 @@
             this.lbxPortsDisp.Name = "lbxPortsDisp";
             this.lbxPortsDisp.Size = new System.Drawing.Size(159, 264);
             this.lbxPortsDisp.TabIndex = 4;
+            this.lbxPortsDisp.SelectedIndexChanged += new System.EventHandler(this.lbxPortsDisp_SelectedIndexChanged);
             // 
             // tabPage2
             // 
@@ -214,9 +215,9 @@
         private System.Windows.Forms.Button btnDelete;
         private System.Windows.Forms.Button btnAdd;
         private System.Windows.Forms.ListBox lbxPortsDisp;
-        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox tbId;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox tbFabricante;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.CheckBox cbxAllPorts;
         private System.Windows.Forms.Button btnRefres;
