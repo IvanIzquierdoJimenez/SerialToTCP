@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
+using System.Diagnostics;
 
 namespace SerialToServer
 {
@@ -17,10 +18,13 @@ namespace SerialToServer
 
         SerialPort serial = new SerialPort();
         Dictionary<string, puente> puentes = new Dictionary<string, puente>();
+        Process process = new Process();
+        public bool isOpen = false;
         public Form1()
         {
             InitializeComponent();
             RefreshPorts();
+            process.StartInfo.FileName = @"server.exe";
         }
 
 
@@ -81,6 +85,22 @@ namespace SerialToServer
         private void btnRefres_Click(object sender, EventArgs e)
         {
             RefreshPorts();
+        }
+
+        private void btnOpenServer_Click(object sender, EventArgs e)
+        {
+            if (!isOpen)
+            {
+                process.Start();
+                btnOpenServer.Text = "Stop Server";
+                isOpen = true;
+            }
+            else if (isOpen) 
+            {
+                process.Kill();
+                btnOpenServer.Text = "Start Server";
+                isOpen = false;
+            }
         }
     }
 }
