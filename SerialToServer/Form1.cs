@@ -142,9 +142,13 @@ namespace SerialToServer
 
         private void lbxPortsDisp_SelectedIndexChanged(object sender, EventArgs e)
         {
-            ListBox lbx = (ListBox)sender;
-            string puerto = lbx.SelectedItem.ToString();
-            tbFabricante.Text = detailsPorts[puerto];
+            try
+            {
+                ListBox lbx = (ListBox)sender;
+                string puerto = lbx.SelectedItem.ToString();
+                tbFabricante.Text = detailsPorts[puerto];
+            }
+            catch(Exception ex) { }
         }
     }
 }
