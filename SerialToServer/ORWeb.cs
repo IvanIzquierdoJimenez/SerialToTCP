@@ -39,8 +39,6 @@ namespace SerialToServer
             timer.Interval = 250;
             timer.Tick += Timer_Tick;
             timer.Start();
-            //t = new Thread(ORTSTCP);
-            //t.Start();
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -51,20 +49,8 @@ namespace SerialToServer
             dataRead = reader.ReadToEnd();
         }
 
-        private void ORTSTCP()
-        {
-            while (true)
-            {
-                
-            }
-        }
-
         public List<controllers> readJsonTCP()
         {
-            //var webResponse = request.GetResponse();
-            //var webStream = webResponse.GetResponseStream();
-            //var reader = new StreamReader(webStream);
-            //var dataRead = reader.ReadToEnd();
             List<controllers> data = JsonConvert.DeserializeObject<List<controllers>>(dataRead);
             return data;
         }
