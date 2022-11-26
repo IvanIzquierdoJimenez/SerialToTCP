@@ -42,7 +42,8 @@
             this.btnAdd = new System.Windows.Forms.Button();
             this.lbxPortsDisp = new System.Windows.Forms.ListBox();
             this.tpInterface = new System.Windows.Forms.TabPage();
-            this.listBox1 = new System.Windows.Forms.ListBox();
+            this.cbEnableORTSTCP = new System.Windows.Forms.CheckBox();
+            this.lbxControllers = new System.Windows.Forms.ListBox();
             this.tabControl1.SuspendLayout();
             this.tpArduino.SuspendLayout();
             this.tpInterface.SuspendLayout();
@@ -184,7 +185,8 @@
             // 
             // tpInterface
             // 
-            this.tpInterface.Controls.Add(this.listBox1);
+            this.tpInterface.Controls.Add(this.cbEnableORTSTCP);
+            this.tpInterface.Controls.Add(this.lbxControllers);
             this.tpInterface.Location = new System.Drawing.Point(4, 29);
             this.tpInterface.Name = "tpInterface";
             this.tpInterface.Padding = new System.Windows.Forms.Padding(3);
@@ -193,14 +195,25 @@
             this.tpInterface.Text = "Interface";
             this.tpInterface.UseVisualStyleBackColor = true;
             // 
-            // listBox1
+            // cbEnableORTSTCP
             // 
-            this.listBox1.FormattingEnabled = true;
-            this.listBox1.ItemHeight = 20;
-            this.listBox1.Location = new System.Drawing.Point(19, 37);
-            this.listBox1.Name = "listBox1";
-            this.listBox1.Size = new System.Drawing.Size(162, 304);
-            this.listBox1.TabIndex = 0;
+            this.cbEnableORTSTCP.AutoSize = true;
+            this.cbEnableORTSTCP.Location = new System.Drawing.Point(21, 16);
+            this.cbEnableORTSTCP.Name = "cbEnableORTSTCP";
+            this.cbEnableORTSTCP.Size = new System.Drawing.Size(167, 24);
+            this.cbEnableORTSTCP.TabIndex = 1;
+            this.cbEnableORTSTCP.Text = "Enable ORTS TCP";
+            this.cbEnableORTSTCP.UseVisualStyleBackColor = true;
+            this.cbEnableORTSTCP.CheckedChanged += new System.EventHandler(this.cbEnableORTSTCP_CheckedChanged);
+            // 
+            // lbxControllers
+            // 
+            this.lbxControllers.FormattingEnabled = true;
+            this.lbxControllers.ItemHeight = 20;
+            this.lbxControllers.Location = new System.Drawing.Point(21, 46);
+            this.lbxControllers.Name = "lbxControllers";
+            this.lbxControllers.Size = new System.Drawing.Size(257, 304);
+            this.lbxControllers.TabIndex = 0;
             // 
             // Form1
             // 
@@ -215,6 +228,7 @@
             this.tpArduino.ResumeLayout(false);
             this.tpArduino.PerformLayout();
             this.tpInterface.ResumeLayout(false);
+            this.tpInterface.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -235,7 +249,8 @@
         private System.Windows.Forms.CheckBox cbxAllPorts;
         private System.Windows.Forms.Button btnRefres;
         private System.Windows.Forms.Button btnOpenServer;
-        private System.Windows.Forms.ListBox listBox1;
+        private System.Windows.Forms.ListBox lbxControllers;
+        private System.Windows.Forms.CheckBox cbEnableORTSTCP;
     }
 }
 

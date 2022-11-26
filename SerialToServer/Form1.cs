@@ -28,6 +28,7 @@ namespace SerialToServer
             InitializeComponent();
             RefreshPorts();
             descriptPort();
+            //ORWeb rWeb = new ORWeb();
             process.StartInfo.FileName = @"server.exe";
         }
 
@@ -149,6 +150,24 @@ namespace SerialToServer
                 tbFabricante.Text = detailsPorts[puerto];
             }
             catch(Exception ex) { }
+        }
+
+        private void cbEnableORTSTCP_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox cb = (CheckBox)sender;
+            bool check = cb.Checked;
+            if(check)
+            {
+                ORWeb rWeb = new ORWeb();
+                //foreach (var Controllers in rWeb.readJsonTCP())
+                //{
+                //    lbxControllers.Items.Add(Controllers.TypeName);
+                //}
+            }
+            else
+            {
+                lbxControllers.Items.Clear();
+            }
         }
     }
 }
