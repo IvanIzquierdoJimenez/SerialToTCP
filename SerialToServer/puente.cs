@@ -37,8 +37,8 @@ namespace SerialToServer
             {
                 try
                 { 
-                    string data = serial.ReadLine()+'\n';
-                    network.Write(Encoding.UTF8.GetBytes(data), 0, data.Length);
+                    var data = Encoding.UTF8.GetBytes(serial.ReadLine()+'\n');
+                    network.Write(data, 0, data.Length);
                 }
                 catch (Exception e)
                 {

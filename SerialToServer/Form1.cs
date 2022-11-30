@@ -89,11 +89,11 @@ namespace SerialToServer
 
         private void descriptPort()
         {
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * from WIN32_SerialPort");
+            /*ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * from WIN32_SerialPort");
             foreach (ManagementObject port in searcher.Get())
             {
                 detailsPorts.Add((string)port.GetPropertyValue("DeviceID"), (string)port.GetPropertyValue("Description"));
-            }
+            }*/
         }
 
         private void btnRefres_Click(object sender, EventArgs e)
