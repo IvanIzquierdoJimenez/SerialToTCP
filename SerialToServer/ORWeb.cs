@@ -43,8 +43,6 @@ namespace SerialToServer
             string file = File.ReadAllText("parameters.json");
             List<Parameter> parameters = JsonConvert.DeserializeObject<List<Parameter>>(file);
             SetupParameters(parameters);
-            Console.WriteLine("Parameters");
-            Console.WriteLine("Size:" + parameters.Count);
             foreach (var parameter in parameters)
             {
                 if (parameter.Write)
@@ -57,28 +55,36 @@ namespace SerialToServer
                 }
                 if (parameter.Write)
                 {
-                    Console.WriteLine("register("+parameter.ServerName+")\n");
+                    //Console.WriteLine("register("+parameter.ServerName+")\n");
                     if (!TcpToSimulatorNames.ContainsKey(parameter.ServerName)) TcpToSimulatorNames[parameter.ServerName] = parameter;
                     var data = Encoding.UTF8.GetBytes("register("+parameter.ServerName+")\n");
                     stream.Write(data, 0, data.Length);
                 }
             }
-
             new Thread(TCPToOR).Start();
         }
         public abstract void SendSimulator(Parameter parameter, double value);
         public abstract void SetupParameters(List<Parameter> parameters);
         public void SendServer(Parameter parameter, double value)
         {
-            if (parameter.SimulatorMin.HasValue)
-            {
-                value = parameter.SimulatorMin.Value + value * (parameter.SimulatorMax.Value-parameter.SimulatorMin.Value);
-            }
             if (parameter.ServerMin.HasValue)
             {
-                value = (value - parameter.ServerMin.Value)*(parameter.ServerMax.Value - parameter.ServerMin.Value);
+                if (parameter.SimulatorMin.HasValue)
+                {
+                    value = (value - parameter.SimulatorMin.Value)/(parameter.SimulatorMax.Value-parameter.SimulatorMin.Value);
+                }
+                value = parameter.ServerMin.Value + value * (parameter.ServerMax.Value - parameter.ServerMin.Value);
             }
-            var data = Encoding.UTF8.GetBytes(parameter.ServerName+"="+value+"\n");
+            SendServer(parameter.ServerName, value.ToString());
+        }
+        public void SendServer(string parameter, string value)
+        {
+            var data = Encoding.UTF8.GetBytes(parameter+"="+value+"\n");
+            stream.Write(data, 0, data.Length);
+        }
+        public void SendServer(string line)
+        {
+            var data = Encoding.UTF8.GetBytes(line+"\n");
             stream.Write(data, 0, data.Length);
         }
         void TCPToOR()
@@ -86,7 +92,7 @@ namespace SerialToServer
             while (true)
             {
                 string line = reader.ReadLine();
-                Console.WriteLine(line);
+                //Console.WriteLine(line);
                 if (line.StartsWith("register("))
                 {
                     
@@ -99,10 +105,10 @@ namespace SerialToServer
                         if (parameter.ServerMin.HasValue)
                         {
                             value = (value - parameter.ServerMin.Value)/(parameter.ServerMax.Value - parameter.ServerMin.Value);
-                        }
-                        if (parameter.SimulatorMin != null)
-                        {
-                            value = parameter.SimulatorMin.Value + value * (parameter.SimulatorMax.Value-parameter.SimulatorMin.Value);
+                            if (parameter.SimulatorMin.HasValue)
+                            {
+                                value = parameter.SimulatorMin.Value + value * (parameter.SimulatorMax.Value-parameter.SimulatorMin.Value);
+                            }
                         }
                         SendSimulator(parameter, value);
                     }
@@ -173,7 +179,7 @@ namespace SerialToServer
                 indexes[cv.TypeName] = index;
                 if (SimulatorToTcpNames.TryGetValue(cv.TypeName+':'+index, out var parameter))
                 {
-                    SendServer(parameter, cv.RangeFraction);
+                    SendServer(parameter, cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue));
                 }
             }
         }
@@ -205,24 +211,32 @@ namespace SerialToServer
     }
     public class RWDll : SimulatorInterface
     {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool SetDllDirectory(string lpPathName);
         [DllImport("RailDriver64.dll")]
         internal static extern void SetControllerValue(int Control, float Value);
         [DllImport("RailDriver64.dll")]
         internal static extern Single GetControllerValue(int Control, int Mode);
         [DllImport("RailDriver64.dll")]
         internal static extern void SetRailDriverConnected(bool Value);
+        [DllImport("RailDriver64.dll")]
+        internal static extern void SetRailSimConnected(bool Value);
         [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr GetLocoName();
         [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr GetControllerList();
         Timer timer = new Timer();
         Dictionary<Parameter, int> ParameterIndex = new Dictionary<Parameter, int>();
-        Dictionary<Parameter, double> LastValues;
+        Dictionary<Parameter, double> LastValues = new Dictionary<Parameter, double>();
+        public string RWPath = "";
         public RWDll()
-        {
+        {            
             timer.Interval = 100;
             timer.Tick += Timer_Tick;
             timer.Start();
+
+            new Thread(Antenna).Start();
         }
         private void Timer_Tick(object sender, EventArgs e)
         {
@@ -242,7 +256,19 @@ namespace SerialToServer
         }
         public override void SetupParameters(List<Parameter> parameters)
         {
+            RWPath = File.ReadAllLines("railworks_path.txt")[0];
+            SetDllDirectory(Path.Combine(RWPath, "plugins"));
+            string loco = null;
+            while (loco == null || loco == "")
+            {
+                SetRailDriverConnected(true);
+                SetRailSimConnected(true);
+                loco = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(GetLocoName());
+                Thread.Sleep(500);
+            }
+            Console.WriteLine(loco);
             string tmp = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(GetControllerList());
+            Console.WriteLine(tmp);
             var controls = tmp.Split(new string[] { "::" }, StringSplitOptions.RemoveEmptyEntries).ToList();
             foreach (var parameter in parameters)
             {
@@ -260,6 +286,22 @@ namespace SerialToServer
             if (ParameterIndex.TryGetValue(parameter, out int index))
             {
                 SetControllerValue(index, (float)value);
+            }
+        }
+        public void Antenna()
+        {
+            using (var fs = new FileStream(Path.Combine(RWPath, "plugins", "ETCSTelegram.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var reader = new StreamReader(fs))
+            {
+                while (true)
+                {
+                    var line = reader.ReadLine();
+
+                    if (!String.IsNullOrWhiteSpace(line))
+                    {
+                        SendServer(line);
+                    }
+                }
             }
         }
     }
