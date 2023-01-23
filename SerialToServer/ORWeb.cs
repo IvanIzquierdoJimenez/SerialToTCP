@@ -75,7 +75,7 @@ namespace SerialToServer
                 }
                 value = parameter.ServerMin.Value + value * (parameter.ServerMax.Value - parameter.ServerMin.Value);
             }
-            SendServer(parameter.ServerName, value.ToString());
+            SendServer(parameter.ServerName, value.ToString().Replace(',','.'));
         }
         public void SendServer(string parameter, string value)
         {
@@ -231,13 +231,19 @@ namespace SerialToServer
         Dictionary<Parameter, double> LastValues = new Dictionary<Parameter, double>();
         public string RWPath = "";
         public RWDll()
-        {            
+        {
+            Time = DateTime.UtcNow;
+
             timer.Interval = 100;
             timer.Tick += Timer_Tick;
             timer.Start();
 
             new Thread(Antenna).Start();
         }
+        int SpeedometerControlIndex;
+        double distance;
+        double sentDistance;
+        DateTime Time;
         private void Timer_Tick(object sender, EventArgs e)
         {
             foreach (var kvp in ParameterIndex)
@@ -252,6 +258,14 @@ namespace SerialToServer
                         SendServer(parameter, value);
                     }
                 }
+            }
+            double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
+            distance += Math.Abs(speed)*(DateTime.UtcNow-Time).TotalSeconds;
+            Time = DateTime.UtcNow;
+            if (distance - sentDistance > 1)
+            {
+                SendServer("distance", distance.ToString().Replace(',','.'));
+                sentDistance = distance;
             }
         }
         public override void SetupParameters(List<Parameter> parameters)
@@ -280,6 +294,7 @@ namespace SerialToServer
                     parameter.SimulatorMax = GetControllerValue(index, 2);
                 }
             }
+            SpeedometerControlIndex = controls.IndexOf("SpeedometerKPH");
         }
         public override void SendSimulator(Parameter parameter, double value)
         {
@@ -290,17 +305,21 @@ namespace SerialToServer
         }
         public void Antenna()
         {
+            var wh = new AutoResetEvent(false);
+            var fsw = new FileSystemWatcher(Path.Combine(RWPath, "plugins"));
+            fsw.Filter = "ETCSTelegram.txt";
+            fsw.EnableRaisingEvents = true;
+            fsw.Changed += (s,e) => wh.Set();
             using (var fs = new FileStream(Path.Combine(RWPath, "plugins", "ETCSTelegram.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             using (var reader = new StreamReader(fs))
             {
+                fs.Seek(fs.Length, SeekOrigin.Begin);
                 while (true)
                 {
                     var line = reader.ReadLine();
 
-                    if (!String.IsNullOrWhiteSpace(line))
-                    {
-                        SendServer(line);
-                    }
+                    if (!String.IsNullOrWhiteSpace(line)) SendServer(line);
+                    else wh.WaitOne(100);
                 }
             }
         }

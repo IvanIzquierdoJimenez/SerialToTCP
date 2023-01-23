@@ -44,6 +44,7 @@
             this.tpInterface = new System.Windows.Forms.TabPage();
             this.cbEnableORTSTCP = new System.Windows.Forms.CheckBox();
             this.lbxControllers = new System.Windows.Forms.ListBox();
+            this.cbEnableRWTCP = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tpArduino.SuspendLayout();
             this.tpInterface.SuspendLayout();
@@ -185,6 +186,7 @@
             // 
             // tpInterface
             // 
+            this.tpInterface.Controls.Add(this.cbEnableRWTCP);
             this.tpInterface.Controls.Add(this.cbEnableORTSTCP);
             this.tpInterface.Controls.Add(this.lbxControllers);
             this.tpInterface.Location = new System.Drawing.Point(4, 29);
@@ -214,6 +216,17 @@
             this.lbxControllers.Name = "lbxControllers";
             this.lbxControllers.Size = new System.Drawing.Size(257, 304);
             this.lbxControllers.TabIndex = 0;
+            // 
+            // cbEnableRWTCP
+            // 
+            this.cbEnableRWTCP.AutoSize = true;
+            this.cbEnableRWTCP.Location = new System.Drawing.Point(321, 16);
+            this.cbEnableRWTCP.Name = "cbEnableRWTCP";
+            this.cbEnableRWTCP.Size = new System.Drawing.Size(150, 24);
+            this.cbEnableRWTCP.TabIndex = 2;
+            this.cbEnableRWTCP.Text = "Enable RW TCP";
+            this.cbEnableRWTCP.UseVisualStyleBackColor = true;
+            this.cbEnableRWTCP.CheckedChanged += new System.EventHandler(this.cbEnableRWTCP_CheckedChanged);
             // 
             // Form1
             // 
@@ -251,6 +264,7 @@
         private System.Windows.Forms.Button btnOpenServer;
         private System.Windows.Forms.ListBox lbxControllers;
         private System.Windows.Forms.CheckBox cbEnableORTSTCP;
+        private System.Windows.Forms.CheckBox cbEnableRWTCP;
     }
 }
 

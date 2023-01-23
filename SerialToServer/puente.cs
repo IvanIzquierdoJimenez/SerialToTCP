@@ -24,6 +24,7 @@ namespace SerialToServer
             network = c.GetStream();
             sr = new StreamReader(network);
             serial.Open();
+            Thread.Sleep(5000);
             Connected = true;
             Thread SerialTCP = new Thread(SerialToTCP);
             Thread TCPSerial = new Thread(TCPToSerial);

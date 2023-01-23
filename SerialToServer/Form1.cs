@@ -28,7 +28,6 @@ namespace SerialToServer
             InitializeComponent();
             RefreshPorts();
             descriptPort();
-            //ORWeb rWeb = new ORWeb();
             process.StartInfo.FileName = @"server.exe";
         }
 
@@ -159,10 +158,20 @@ namespace SerialToServer
             if(check)
             {
                 ORWeb rWeb = new ORWeb();
-                //foreach (var Controllers in rWeb.readJsonTCP())
-                //{
-                //    lbxControllers.Items.Add(Controllers.TypeName);
-                //}
+            }
+            else
+            {
+                lbxControllers.Items.Clear();
+            }
+        }
+
+        private void cbEnableRWTCP_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox cb = (CheckBox)sender;
+            bool check = cb.Checked;
+            if(check)
+            {
+                RWDll rDll = new RWDll();
             }
             else
             {
