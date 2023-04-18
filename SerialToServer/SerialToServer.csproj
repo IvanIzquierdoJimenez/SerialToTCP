@@ -56,12 +56,21 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="JSonConfigurador.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="JSonConfigurador.Designer.cs">
+      <DependentUpon>JSonConfigurador.cs</DependentUpon>
+    </Compile>
     <Compile Include="ORWeb.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="puente.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="JSonConfigurador.resx">
+      <DependentUpon>JSonConfigurador.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
