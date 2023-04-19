@@ -222,5 +222,11 @@ namespace SerialToServer
                 lbxControllers.Items.Clear();
             }
         }
+
+        private void btnConfigParametros_Click(object sender, EventArgs e)
+        {
+            JSonConfigurador jc = new JSonConfigurador();
+            jc.ShowDialog();
+        }
     }
 }

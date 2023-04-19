@@ -42,9 +42,10 @@
             this.btnAdd = new System.Windows.Forms.Button();
             this.lbxPortsDisp = new System.Windows.Forms.ListBox();
             this.tpInterface = new System.Windows.Forms.TabPage();
+            this.btnConfigParametros = new System.Windows.Forms.Button();
+            this.cbEnableRWTCP = new System.Windows.Forms.CheckBox();
             this.cbEnableORTSTCP = new System.Windows.Forms.CheckBox();
             this.lbxControllers = new System.Windows.Forms.ListBox();
-            this.cbEnableRWTCP = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tpArduino.SuspendLayout();
             this.tpInterface.SuspendLayout();
@@ -186,6 +187,7 @@
             // 
             // tpInterface
             // 
+            this.tpInterface.Controls.Add(this.btnConfigParametros);
             this.tpInterface.Controls.Add(this.cbEnableRWTCP);
             this.tpInterface.Controls.Add(this.cbEnableORTSTCP);
             this.tpInterface.Controls.Add(this.lbxControllers);
@@ -196,6 +198,28 @@
             this.tpInterface.TabIndex = 1;
             this.tpInterface.Text = "Interface";
             this.tpInterface.UseVisualStyleBackColor = true;
+            // 
+            // btnConfigParametros
+            // 
+            this.btnConfigParametros.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnConfigParametros.Location = new System.Drawing.Point(319, 67);
+            this.btnConfigParametros.Name = "btnConfigParametros";
+            this.btnConfigParametros.Size = new System.Drawing.Size(152, 52);
+            this.btnConfigParametros.TabIndex = 3;
+            this.btnConfigParametros.Text = "Cofigurador";
+            this.btnConfigParametros.UseVisualStyleBackColor = true;
+            this.btnConfigParametros.Click += new System.EventHandler(this.btnConfigParametros_Click);
+            // 
+            // cbEnableRWTCP
+            // 
+            this.cbEnableRWTCP.AutoSize = true;
+            this.cbEnableRWTCP.Location = new System.Drawing.Point(321, 16);
+            this.cbEnableRWTCP.Name = "cbEnableRWTCP";
+            this.cbEnableRWTCP.Size = new System.Drawing.Size(150, 24);
+            this.cbEnableRWTCP.TabIndex = 2;
+            this.cbEnableRWTCP.Text = "Enable RW TCP";
+            this.cbEnableRWTCP.UseVisualStyleBackColor = true;
+            this.cbEnableRWTCP.CheckedChanged += new System.EventHandler(this.cbEnableRWTCP_CheckedChanged);
             // 
             // cbEnableORTSTCP
             // 
@@ -216,17 +240,6 @@
             this.lbxControllers.Name = "lbxControllers";
             this.lbxControllers.Size = new System.Drawing.Size(257, 304);
             this.lbxControllers.TabIndex = 0;
-            // 
-            // cbEnableRWTCP
-            // 
-            this.cbEnableRWTCP.AutoSize = true;
-            this.cbEnableRWTCP.Location = new System.Drawing.Point(321, 16);
-            this.cbEnableRWTCP.Name = "cbEnableRWTCP";
-            this.cbEnableRWTCP.Size = new System.Drawing.Size(150, 24);
-            this.cbEnableRWTCP.TabIndex = 2;
-            this.cbEnableRWTCP.Text = "Enable RW TCP";
-            this.cbEnableRWTCP.UseVisualStyleBackColor = true;
-            this.cbEnableRWTCP.CheckedChanged += new System.EventHandler(this.cbEnableRWTCP_CheckedChanged);
             // 
             // Form1
             // 
@@ -265,6 +278,7 @@
         private System.Windows.Forms.ListBox lbxControllers;
         private System.Windows.Forms.CheckBox cbEnableORTSTCP;
         private System.Windows.Forms.CheckBox cbEnableRWTCP;
+        private System.Windows.Forms.Button btnConfigParametros;
     }
 }
 
