@@ -12,6 +12,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Management;
 using System.Xml.Linq;
+using Timer = System.Windows.Forms.Timer;
 
 namespace SerialToServer
 {
@@ -22,13 +23,35 @@ namespace SerialToServer
         Dictionary<string, puente> puentes = new Dictionary<string, puente>();
         Dictionary<string, string> detailsPorts = new Dictionary<string, string>();
         Process process = new Process();
+        OrWeb orWeb;
+        RwDll rwDll;
         public bool isOpen = false;
+        Timer timer = new Timer();
         public Form1()
         {
             InitializeComponent();
             RefreshPorts();
             descriptPort();
+            
             process.StartInfo.FileName = @"server.exe";
+            process.Start();
+            btnOpenServer.Text = "Stop Server";
+            isOpen = true;
+            
+            new Thread(() => {
+                while(true)
+                {
+                    RefreshPorts();
+                    if (orWeb != null && !orWeb.Active && orWeb.Failed)
+                        orWeb = new OrWeb();
+                    Thread.Sleep(10000);
+                }
+            }).Start();
+            new Thread(() => {
+                Thread.Sleep(5000);
+                cbEnableORTSTCP.Checked = true;
+                //cbxAllPorts.Checked = true;
+            }).Start();
         }
 
 
@@ -73,6 +96,7 @@ namespace SerialToServer
             }
             foreach (string port in SerialPort.GetPortNames())
             {
+                if (port == "COM1" || port == "COM2") continue;
                 bool exists = false;
                 for (int i = 0; i < lbxConnected.Items.Count; i++)
                 {
@@ -82,7 +106,15 @@ namespace SerialToServer
                         break;
                     }
                 }
-                if (!exists) lbxPortsDisp.Items.Add(port);
+                if (!exists)
+                {
+                    if (cbxAllPorts.Checked)
+                    {
+                        lbxConnected.Items.Add(port);
+                        puentes.Add(port, new puente(port));
+                    }
+                    else lbxPortsDisp.Items.Add(port);
+                }
             }
         }
 
@@ -97,7 +129,7 @@ namespace SerialToServer
 
         private void btnRefres_Click(object sender, EventArgs e)
         {
-            RefreshPorts();
+            new Thread(RefreshPorts).Start();
             //using (var searcher = new ManagementObjectSearcher("SELECT DeviceID, Caption, Description FROM WIN32_SerialPort"))
             //{
             //    string[] portnames = SerialPort.GetPortNames();
@@ -157,10 +189,16 @@ namespace SerialToServer
             bool check = cb.Checked;
             if(check)
             {
-                ORWeb rWeb = new ORWeb();
+                if (orWeb != null) orWeb.Active = false;
+                new Thread(() => orWeb = new OrWeb()).Start();
             }
             else
             {
+                if (orWeb != null)
+                {
+                    orWeb.Active = false;
+                    orWeb = null;
+                }
                 lbxControllers.Items.Clear();
             }
         }
@@ -171,10 +209,16 @@ namespace SerialToServer
             bool check = cb.Checked;
             if(check)
             {
-                RWDll rDll = new RWDll();
+                if (rwDll != null) rwDll.Active = false;
+                new Thread(() => rwDll = new RwDll()).Start();
             }
             else
             {
+                if (rwDll != null)
+                {
+                    rwDll.Active = false;
+                    rwDll = null;
+                }
                 lbxControllers.Items.Clear();
             }
         }

@@ -19,11 +19,15 @@ namespace SerialToServer
         public bool Connected;
         public puente(string Port)
         {
-            serial = new SerialPort(Port, 115200);
+            serial = new SerialPort(Port, 115200)
+            {
+                Encoding = Encoding.UTF8
+            };
             c = new TcpClient("127.0.0.1", 5090);
             network = c.GetStream();
             sr = new StreamReader(network);
             serial.Open();
+            serial.DtrEnable = true;
             Thread.Sleep(5000);
             Connected = true;
             Thread SerialTCP = new Thread(SerialToTCP);

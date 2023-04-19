@@ -13,7 +13,6 @@ using System.Data;
 using System.Net.Sockets;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using Timer = System.Windows.Forms.Timer;
 
 namespace SerialToServer
 {
@@ -34,6 +33,8 @@ namespace SerialToServer
         private TcpClient client;
         StreamReader reader;
         Stream stream;
+        public bool Active = false;
+        public bool Failed = false;
         public SimulatorInterface()
         {
             client = new TcpClient("127.0.0.1", 5090);
@@ -89,7 +90,11 @@ namespace SerialToServer
         }
         void TCPToOR()
         {
-            while (true)
+            while (!Active)
+            {
+                Thread.Sleep(1000);
+            }
+            while (Active)
             {
                 string line = reader.ReadLine();
                 //Console.WriteLine(line);
@@ -114,9 +119,17 @@ namespace SerialToServer
                     }
                 }
             }
+            try
+            {
+                client.Close();
+            }
+            catch (Exception e)
+            {
+                
+            }
         }
     }
-    public class ORWeb : SimulatorInterface
+    public class OrWeb : SimulatorInterface
     {
         /// <summary>
         /// Contains information about a single cab control.
@@ -138,17 +151,21 @@ namespace SerialToServer
             public int ControlIndex;
             public double Value;
         }
-        Timer timer = new Timer();
-        public ORWeb()
+        public OrWeb()
         {
-            timer.Interval = 250;
-            timer.Tick += Timer_Tick;
-            timer.Start();
+            new Thread(Read);
         }
         public override void SetupParameters(List<Parameter> parameters)
         {
             var indexes = new Dictionary<string, int>();
-            foreach (var cv in GetValues())
+            List<ControlValue> values = GetValues();
+            while(values == null)
+            {
+                Thread.Sleep(5000);
+                values = GetValues();
+            }
+            Active = true;
+            foreach (var cv in values)
             {
                 int index = 0;
                 if (indexes.ContainsKey(cv.TypeName)) index = indexes[cv.TypeName] + 1;
@@ -169,18 +186,33 @@ namespace SerialToServer
             }         
         }
 
-        private void Timer_Tick(object sender, EventArgs e)
+        private void Read()
         {
-            var indexes = new Dictionary<string, int>();
-            foreach (var cv in GetValues())
+            while (!Active)
             {
-                int index = 0;
-                if (indexes.ContainsKey(cv.TypeName)) index = indexes[cv.TypeName] + 1;
-                indexes[cv.TypeName] = index;
-                if (SimulatorToTcpNames.TryGetValue(cv.TypeName+':'+index, out var parameter))
+                Thread.Sleep(2000);
+            }
+            while (Active)
+            {
+                var indexes = new Dictionary<string, int>();
+                var values = GetValues();
+                if (values == null)
                 {
-                    SendServer(parameter, cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue));
+                    Active = false;
+                    Failed = true;
+                    return;
                 }
+                foreach (var cv in values)
+                {
+                    int index = 0;
+                    if (indexes.ContainsKey(cv.TypeName)) index = indexes[cv.TypeName] + 1;
+                    indexes[cv.TypeName] = index;
+                    if (SimulatorToTcpNames.TryGetValue(cv.TypeName+':'+index, out var parameter))
+                    {
+                        SendServer(parameter, cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue));
+                    }
+                }
+                Thread.Sleep(250);
             }
         }
         public override void SendSimulator(Parameter parameter, double value)
@@ -190,26 +222,43 @@ namespace SerialToServer
             cv.TypeName = spl[0];
             if (spl.Length > 1) cv.ControlIndex = int.Parse(spl[1]);
             cv.Value = value;
-            var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
-            request.Method = "POST";
-            request.ContentType = "application/json";
             string json = JsonConvert.SerializeObject(new ControlValuePost[]{cv});
             var bytes = Encoding.UTF8.GetBytes(json);
-            request.ContentLength = bytes.Length;
-            using (var stream = request.GetRequestStream())
+            try
             {
-                stream.Write(bytes, 0, bytes.Length);
-                using (var response = request.GetResponse()) {}
+                var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
+                request.Method = "POST";
+                request.ContentType = "application/json";
+                request.ContentLength = bytes.Length;
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                    using (var response = request.GetResponse()) {}
+                }
+            }
+            catch (Exception e)
+            {
+                Active = false;
+                Failed = true;
+                Console.WriteLine(e);
             }
         }
         List<ControlValue> GetValues()
         {
-            var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
-            request.Method = "GET";
-            return JsonConvert.DeserializeObject<List<ControlValue>>(new StreamReader(request.GetResponse().GetResponseStream()).ReadToEnd());
+            try
+            {
+                var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
+                request.Method = "GET";
+                return JsonConvert.DeserializeObject<List<ControlValue>>(new StreamReader(request.GetResponse().GetResponseStream()).ReadToEnd());
+            }
+            catch (Exception e)
+            {
+                if (Active) Console.WriteLine(e);
+                return null;
+            }
         }
     }
-    public class RWDll : SimulatorInterface
+    public class RwDll : SimulatorInterface
     {
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -226,17 +275,14 @@ namespace SerialToServer
         internal static extern IntPtr GetLocoName();
         [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr GetControllerList();
-        Timer timer = new Timer();
         Dictionary<Parameter, int> ParameterIndex = new Dictionary<Parameter, int>();
         Dictionary<Parameter, double> LastValues = new Dictionary<Parameter, double>();
         public string RWPath = "";
-        public RWDll()
+        public RwDll()
         {
             Time = DateTime.UtcNow;
-
-            timer.Interval = 100;
-            timer.Tick += Timer_Tick;
-            timer.Start();
+            
+            new Thread(Read).Start();
 
             new Thread(Antenna).Start();
         }
@@ -244,28 +290,36 @@ namespace SerialToServer
         double distance;
         double sentDistance;
         DateTime Time;
-        private void Timer_Tick(object sender, EventArgs e)
+        private void Read()
         {
-            foreach (var kvp in ParameterIndex)
+            while (!Active)
             {
-                var parameter = kvp.Key;
-                if (!parameter.Write)
+                Thread.Sleep(1000);
+            }
+            while (Active)
+            {
+                foreach (var kvp in ParameterIndex)
                 {
-                    double value = GetControllerValue(kvp.Value, 0);
-                    if (!LastValues.TryGetValue(parameter, out double val) || Math.Abs(value-val) > 0.01f)
+                    var parameter = kvp.Key;
+                    if (!parameter.Write)
                     {
-                        LastValues[parameter] = value;
-                        SendServer(parameter, value);
+                        double value = GetControllerValue(kvp.Value, 0);
+                        if (!LastValues.TryGetValue(parameter, out double val) || Math.Abs(value-val) > 0.01f)
+                        {
+                            LastValues[parameter] = value;
+                            SendServer(parameter, value);
+                        }
                     }
                 }
-            }
-            double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
-            distance += Math.Abs(speed)*(DateTime.UtcNow-Time).TotalSeconds;
-            Time = DateTime.UtcNow;
-            if (distance - sentDistance > 1)
-            {
-                SendServer("distance", distance.ToString().Replace(',','.'));
-                sentDistance = distance;
+                double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
+                distance += Math.Abs(speed)*(DateTime.UtcNow-Time).TotalSeconds;
+                Time = DateTime.UtcNow;
+                if (distance - sentDistance > 1)
+                {
+                    SendServer("distance", distance.ToString().Replace(',','.'));
+                    sentDistance = distance;
+                }
+                Thread.Sleep(100);
             }
         }
         public override void SetupParameters(List<Parameter> parameters)
@@ -280,6 +334,7 @@ namespace SerialToServer
                 loco = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(GetLocoName());
                 Thread.Sleep(500);
             }
+            Active = true;
             Console.WriteLine(loco);
             string tmp = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(GetControllerList());
             Console.WriteLine(tmp);
@@ -305,12 +360,13 @@ namespace SerialToServer
         }
         public void Antenna()
         {
+            if (!File.Exists(Path.Combine(RWPath, "plugins", "ServerData.txt"))) return;
             var wh = new AutoResetEvent(false);
             var fsw = new FileSystemWatcher(Path.Combine(RWPath, "plugins"));
-            fsw.Filter = "ETCSTelegram.txt";
+            fsw.Filter = "ServerData.txt";
             fsw.EnableRaisingEvents = true;
             fsw.Changed += (s,e) => wh.Set();
-            using (var fs = new FileStream(Path.Combine(RWPath, "plugins", "ETCSTelegram.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var fs = new FileStream(Path.Combine(RWPath, "plugins", "ServerData.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             using (var reader = new StreamReader(fs))
             {
                 fs.Seek(fs.Length, SeekOrigin.Begin);
