@@ -153,7 +153,7 @@ namespace SerialToServer
         }
         public OrWeb()
         {
-            new Thread(Read);
+            new Thread(Read).Start();
         }
         public override void SetupParameters(List<Parameter> parameters)
         {
