@@ -66,7 +66,7 @@ namespace SerialToServer
         void readParametersJSON()
         {
             // Leer el archivo JSON
-            string jsonString = File.ReadAllText("../Debug/parameters.json");
+            string jsonString = File.ReadAllText("parameters.json");
 
             // Convertir la cadena JSON en una lista de objetos
             parameters = JsonConvert.DeserializeObject<List<Parameter>>(jsonString);
@@ -118,20 +118,20 @@ namespace SerialToServer
         private void btnGuardar_Click(object sender, EventArgs e)
         {
             // Leer el archivo JSON
-            string jsonString = File.ReadAllText("../Debug/parameters.json");
+            string jsonString = File.ReadAllText("parameters.json");
 
             // Convertir la lista de objetos de vuelta en una cadena JSON
             jsonString = JsonConvert.SerializeObject(parameters, Formatting.Indented);
 
             // Escribir la cadena en el archivo JSON
-            File.WriteAllText("../Debug/parameters.json", jsonString);
+            File.WriteAllText("parameters.json", jsonString);
 
             readParametersJSON();
         }
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            string jsonString = File.ReadAllText("../Debug/parameters.json");
+            string jsonString = File.ReadAllText("parameters.json");
             // Crear un nuevo objeto con los valores de los TextBox
             Parameter newObject = new Parameter();
             newObject.ServerName = tbServer.Text;
@@ -149,7 +149,7 @@ namespace SerialToServer
             jsonString = JsonConvert.SerializeObject(parameters, Formatting.Indented);
 
             // Escribir la cadena en el archivo JSON
-            File.WriteAllText("../Debug/parameters.json", jsonString);
+            File.WriteAllText("parameters.json", jsonString);
         }
 
         private void btnClose_Click(object sender, EventArgs e)
@@ -170,7 +170,7 @@ namespace SerialToServer
                     lboxJSON.Items.RemoveAt(index);
 
                     // Leer el archivo JSON
-                    string jsonString = File.ReadAllText("../Debug/parameters.json");
+                    string jsonString = File.ReadAllText("parameters.json");
 
                     // Eliminar el objeto de la lista
                     parameters.RemoveAt(index);
@@ -179,7 +179,7 @@ namespace SerialToServer
                     jsonString = JsonConvert.SerializeObject(parameters, Formatting.Indented);
 
                     // Escribir la cadena en el archivo JSON
-                    File.WriteAllText("../Debug/parameters.json", jsonString);
+                    File.WriteAllText("parameters.json", jsonString);
                 }
             }
             else
