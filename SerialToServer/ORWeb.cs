@@ -209,7 +209,9 @@ namespace SerialToServer
                     indexes[cv.TypeName] = index;
                     if (SimulatorToTcpNames.TryGetValue(cv.TypeName+':'+index, out var parameter))
                     {
-                        SendServer(parameter, cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue));
+                        double v = cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue);
+                        if (cv.MaxValue - cv.MinValue == 0) v = cv.RangeFraction;
+                        SendServer(parameter, v);
                     }
                 }
                 Thread.Sleep(250);
