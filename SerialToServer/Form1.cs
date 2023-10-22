@@ -32,9 +32,10 @@ namespace SerialToServer
             InitializeComponent();
             RefreshPorts();
             descriptPort();
+            Control.CheckForIllegalCrossThreadCalls = false;
             
-            process.StartInfo.FileName = @"server.exe";
-            process.Start();
+            //process.StartInfo.FileName = @"server.exe";
+            //process.Start();
             btnOpenServer.Text = "Stop Server";
             isOpen = true;
             
@@ -174,13 +175,13 @@ namespace SerialToServer
 
         private void lbxPortsDisp_SelectedIndexChanged(object sender, EventArgs e)
         {
-            try
-            {
-                ListBox lbx = (ListBox)sender;
-                string puerto = lbx.SelectedItem.ToString();
-                tbFabricante.Text = detailsPorts[puerto];
-            }
-            catch(Exception ex) { }
+            //try
+            //{
+            //    ListBox lbx = (ListBox)sender;
+            //    string puerto = lbx.SelectedItem.ToString();
+            //    tbFabricante.Text = detailsPorts[puerto];
+            //}
+            //catch(Exception ex) { }
         }
 
         private void cbEnableORTSTCP_CheckedChanged(object sender, EventArgs e)

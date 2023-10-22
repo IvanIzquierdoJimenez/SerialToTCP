@@ -72,7 +72,15 @@ namespace SerialToServer
             parameters = JsonConvert.DeserializeObject<List<Parameter>>(jsonString);
 
             // Agregar los objetos al ListBox y establecer la propiedad DisplayMember
-            lboxJSON.DataSource = parameters;
+            //lboxJSON.DataSource = parameters;
+            // Limpiar la ListBox antes de agregar elementos
+            lboxJSON.Items.Clear();
+
+            // Agregar elementos a la ListBox
+            foreach (var parameter in parameters)
+            {
+                lboxJSON.Items.Add(parameter);
+            }
         }
 
         private void JSonConfigurador_Load(object sender, EventArgs e)
@@ -101,18 +109,22 @@ namespace SerialToServer
 
         private void lboxJSON_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Obtener el objeto seleccionado en el ListBox
-            Parameter p = (Parameter)lboxJSON.SelectedItem;
+            // Verificar si hay un elemento seleccionado
+            if (lboxJSON.SelectedItem != null)
+            {
+                // Obtener el objeto seleccionado en el ListBox
+                Parameter p = (Parameter)lboxJSON.SelectedItem;
 
-            // Actualizar los valores de los TextBox con los valores del objeto seleccionado
-            //tbServerName.Text = p.ServerName;
-            tbParameter.Text = p.SimulatorName;
-            tbServer.Text = p.ServerName;
-            tbServerMin.Text = p.ServerMin.ToString();
-            tbServerMax.Text = p.ServerMax.ToString();
-            tbSimulatorMin.Text = p.SimulatorMin.ToString();
-            tbSimulatorMax.Text = p.SimulatorMax.ToString();
-            cbWrite.Checked = p.Write;
+                // Actualizar los valores de los TextBox con los valores del objeto seleccionado
+                //tbServerName.Text = p.ServerName;
+                tbParameter.Text = p.SimulatorName;
+                tbServer.Text = p.ServerName;
+                tbServerMin.Text = p.ServerMin.ToString();
+                tbServerMax.Text = p.ServerMax.ToString();
+                tbSimulatorMin.Text = p.SimulatorMin.ToString();
+                tbSimulatorMax.Text = p.SimulatorMax.ToString();
+                cbWrite.Checked = p.Write;
+            }
         }
 
         private void btnGuardar_Click(object sender, EventArgs e)
@@ -150,6 +162,8 @@ namespace SerialToServer
 
             // Escribir la cadena en el archivo JSON
             File.WriteAllText("parameters.json", jsonString);
+
+            readParametersJSON();
         }
 
         private void btnClose_Click(object sender, EventArgs e)
@@ -189,5 +203,45 @@ namespace SerialToServer
 
             readParametersJSON();
         }
+
+        private void btnModificar_Click(object sender, EventArgs e)
+        {
+            if (lboxJSON.SelectedItem != null)
+            {
+                // Obtener el objeto seleccionado en la ListBox
+                Parameter selectedParameter = (Parameter)lboxJSON.SelectedItem;
+
+                // Realizar las modificaciones en el objeto seleccionado
+                selectedParameter.ServerName = tbServer.Text;
+                selectedParameter.SimulatorName = tbParameter.Text;
+                if (!string.IsNullOrEmpty(tbServerMin.Text))
+                {
+                    selectedParameter.ServerMin = double.Parse(tbServerMin.Text);
+                }
+                if (!string.IsNullOrEmpty(tbServerMax.Text))
+                {
+                    selectedParameter.ServerMax = double.Parse(tbServerMax.Text);
+                }
+                if (!string.IsNullOrEmpty(tbSimulatorMin.Text))
+                {
+                    selectedParameter.SimulatorMin = double.Parse(tbSimulatorMin.Text);
+                }
+                if (!string.IsNullOrEmpty(tbSimulatorMax.Text))
+                {
+                    selectedParameter.SimulatorMax = double.Parse(tbSimulatorMax.Text);
+                }
+                selectedParameter.Write = cbWrite.Checked;
+
+                // Convertir la lista de objetos de vuelta en una cadena JSON
+                string jsonString = JsonConvert.SerializeObject(parameters, Formatting.Indented);
+
+                // Escribir la cadena en el archivo JSON
+                File.WriteAllText("parameters.json", jsonString);
+
+                // Actualizar la ListBox para reflejar los cambios
+                lboxJSON.Refresh();
+            }
+        }
+
     }
 }
