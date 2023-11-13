@@ -39,19 +39,19 @@ namespace SerialToServer
             btnOpenServer.Text = "Stop Server";
             isOpen = true;
             
-            new Thread(() => {
-                while(true)
-                {
-                    RefreshPorts();
+            timer.Interval = (10000);
+            timer.Tick += new EventHandler((s,a) => {
+                RefreshPorts();
+                new Thread(() => {
                     if (orWeb != null && !orWeb.Active && orWeb.Failed)
                         orWeb = new OrWeb();
-                    Thread.Sleep(10000);
-                }
-            }).Start();
+                }).Start();
+            });
+            timer.Start();
             new Thread(() => {
                 Thread.Sleep(5000);
                 cbEnableORTSTCP.Checked = true;
-                //cbxAllPorts.Checked = true;
+                cbxAllPorts.Checked = false;
             }).Start();
         }
 
