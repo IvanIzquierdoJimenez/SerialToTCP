@@ -1,0 +1,246 @@
+[
+    {
+        "ServerName": "controller::throttle",
+        "SimulatorName": "THROTTLE",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::brake::dynamic",
+        "SimulatorName": "DYNAMIC_BRAKE",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::brake::train",
+        "SimulatorName": "TRAIN_BRAKE",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::brake::engine",
+        "SimulatorName": "ENGINE_BRAKE",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::direction",
+        "SimulatorName": "DIRECTION",
+        "ServerMin": -1,
+        "ServerMax": 1,
+        "SimulatorMin": -1,
+        "SimulatorMax": 1,
+        "Write": true
+    },
+    {
+        "ServerName": "cruise_speed",
+        "SimulatorName": "ORTS_SELECTED_SPEED_SELECTOR",
+        "ServerMin": 0,
+        "ServerMax": 3.6,
+        "SimulatorMin": 0,
+        "SimulatorMax": 1,
+        "Write": true
+    },
+    {
+        "ServerName": "controller::ammeter",
+        "SimulatorName": "AMMETER",
+        "Write": false
+    },
+    {
+        "ServerName": "controller::line_voltage",
+        "SimulatorName": "LINE_VOLTAGE",
+        "ServerMin": 0,
+        "ServerMax": 1000,
+        "SimulatorMin": 0,
+        "SimulatorMax": 1,
+        "Write": false
+    },
+    {
+        "ServerName": "eq_res",
+        "SimulatorName": "EQ_RES",
+        "Write": false
+    },
+    {
+        "ServerName": "main_res",
+        "SimulatorName": "MAIN_RES",
+        "Write": false
+    },
+    {
+        "ServerName": "brake_pipe",
+        "SimulatorName": "BRAKE_PIPE",
+        "Write": false
+    },
+    {
+        "ServerName": "brake_cylinder",
+        "SimulatorName": "BRAKE_CYL",
+        "Write": false
+    },
+    {
+        "ServerName": "controller::circuit_breaker::open",
+        "SimulatorName": "ORTS_CIRCUIT_BREAKER_DRIVER_OPENING_ORDER",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::circuit_breaker::close",
+        "SimulatorName": "ORTS_CIRCUIT_BREAKER_DRIVER_CLOSING_ORDER",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::pantograph",
+        "SimulatorName": "PANTOGRAPH",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::overcharge",
+        "SimulatorName": "ORTS_OVERCHARGE",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::quick_release",
+        "SimulatorName": "ORTS_QUICKRELEASE",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::bell",
+        "SimulatorName": "BELL",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::horn",
+        "SimulatorName": "HORN",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::sander",
+        "SimulatorName": "SANDERS",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::headlight",
+        "SimulatorName": "FRONT_HLIGHT",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::train_supply",
+        "SimulatorName": "ORTS_ELECTRIC_TRAIN_SUPPLY_COMMAND_SWITCH",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::brake::emergency",
+        "SimulatorName": "EMERGENCY_BRAKE",
+        "Write": true
+    },
+    {
+    "ServerName": "asfa::ilum::conex",
+    "SimulatorName": "ORTS_TCS3",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::reconocer",
+    "SimulatorName": "ORTS_TCS4",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": true
+  },
+  {
+    "ServerName": "asfa::ilum::rojo",
+    "SimulatorName": "ORTS_TCS15",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::ilum::reconocer",
+    "SimulatorName": "ORTS_TCS4",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::ilum::rebase",
+    "SimulatorName": "ORTS_TCS7",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::rebase",
+    "SimulatorName": "ORTS_TCS7",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": true
+  },
+  {
+    "ServerName": "asfa::conex",
+    "SimulatorName": "ORTS_TCS3",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": true
+  },
+  {
+    "ServerName": "asfa::ilum::frenar",
+    "SimulatorName": "ORTS_TCS13",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::rearme",
+    "SimulatorName": "ORTS_TCS6",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": true
+  },
+  {
+    "ServerName": "asfa::ilum::rearme",
+    "SimulatorName": "ORTS_TCS6",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::ilum::eficacia",
+    "SimulatorName": "ORTS_TCS18",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::ilum::anulasfa",
+    "SimulatorName": "ORTS_TCS38",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": false
+  },
+  {
+    "ServerName": "asfa::anulasfa",
+    "SimulatorName": "ORTS_TCS38",
+    "ServerMin": null,
+    "ServerMax": null,
+    "SimulatorMin": null,
+    "SimulatorMax": null,
+    "Write": true
+  }
+]

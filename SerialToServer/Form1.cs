@@ -32,7 +32,7 @@ namespace SerialToServer
             InitializeComponent();
             RefreshPorts();
             descriptPort();
-            Control.CheckForIllegalCrossThreadCalls = false;
+            //Control.CheckForIllegalCrossThreadCalls = false;
             
             //process.StartInfo.FileName = @"server.exe";
             //process.Start();
@@ -45,12 +45,16 @@ namespace SerialToServer
                 new Thread(() => {
                     if (orWeb != null && !orWeb.Active && orWeb.Failed)
                         orWeb = new OrWeb();
+                    if (rwDll != null && !rwDll.Active && rwDll.Failed)
+                        rwDll = new RwDll();
                 }).Start();
             });
             timer.Start();
             new Thread(() => {
                 Thread.Sleep(5000);
                 cbEnableORTSTCP.Checked = true;
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                cbEnableRWTCP.Checked = true;
                 cbxAllPorts.Checked = false;
             }).Start();
         }

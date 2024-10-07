@@ -1,0 +1,24 @@
+[
+    {
+        "ServerName": "controller::throttle",
+        "SimulatorName": "VirtualThrottle",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::brake::dynamic",
+        "SimulatorName": "DynamicBrake",
+        "Write": true
+    },
+    {
+        "ServerName": "controller::direction",
+        "SimulatorName": "Reverser",
+        "Write": true,
+        "ServerMin": -1,
+        "ServerMax": 1
+    },
+    {
+        "ServerName": "speed",
+        "SimulatorName": "SpeedometerKPH",
+        "Write": false
+    }
+]

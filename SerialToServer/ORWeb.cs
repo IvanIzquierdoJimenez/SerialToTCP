@@ -35,13 +35,13 @@ namespace SerialToServer
         Stream stream;
         public bool Active = false;
         public bool Failed = false;
-        public SimulatorInterface()
+        public SimulatorInterface(string filename)
         {
             client = new TcpClient("127.0.0.1", 5090);
             stream = client.GetStream();
             reader = new StreamReader(stream);
 
-            string file = File.ReadAllText("parameters.json");
+            string file = File.ReadAllText(filename);
             List<Parameter> parameters = JsonConvert.DeserializeObject<List<Parameter>>(file);
             SetupParameters(parameters);
             foreach (var parameter in parameters)
@@ -151,7 +151,7 @@ namespace SerialToServer
             public int ControlIndex;
             public double Value;
         }
-        public OrWeb()
+        public OrWeb() : base("parameters_or.json")
         {
             new Thread(Read).Start();
         }
@@ -280,7 +280,7 @@ namespace SerialToServer
         Dictionary<Parameter, int> ParameterIndex = new Dictionary<Parameter, int>();
         Dictionary<Parameter, double> LastValues = new Dictionary<Parameter, double>();
         public string RWPath = "";
-        public RwDll()
+        public RwDll() : base("parameters_rw.json")
         {
             Time = DateTime.UtcNow;
             
@@ -362,7 +362,10 @@ namespace SerialToServer
         }
         public void Antenna()
         {
-            if (!File.Exists(Path.Combine(RWPath, "plugins", "ServerData.txt"))) return;
+            while (!File.Exists(Path.Combine(RWPath, "plugins", "ServerData.txt")))
+            {
+                Thread.Sleep(5000);
+            }
             var wh = new AutoResetEvent(false);
             var fsw = new FileSystemWatcher(Path.Combine(RWPath, "plugins"));
             fsw.Filter = "ServerData.txt";
