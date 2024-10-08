@@ -13,6 +13,9 @@ using System.Data;
 using System.Net.Sockets;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Data.SqlTypes;
+using System.Net.Http;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace SerialToServer
 {
@@ -31,42 +34,105 @@ namespace SerialToServer
         protected Dictionary<string, Parameter> TcpToSimulatorNames = new Dictionary<string, Parameter>();
         protected Dictionary<string, Parameter> SimulatorToTcpNames = new Dictionary<string, Parameter>();
         private TcpClient client;
-        StreamReader reader;
-        Stream stream;
+        protected StreamReader Reader;
+        protected StreamWriter Writer;
         public bool Active = false;
-        public bool Failed = false;
+        public bool Disconnected = false;
+        Task SetupTask;
+        protected List<Parameter> parameters;
         public SimulatorInterface(string filename)
         {
-            client = new TcpClient("127.0.0.1", 5090);
-            stream = client.GetStream();
-            reader = new StreamReader(stream);
-
             string file = File.ReadAllText(filename);
-            List<Parameter> parameters = JsonConvert.DeserializeObject<List<Parameter>>(file);
-            SetupParameters(parameters);
-            foreach (var parameter in parameters)
+            parameters = JsonConvert.DeserializeObject<List<Parameter>>(file);
+            SetupTask = SetupAsync();
+        }
+        public virtual void Disconnect()
+        {
+            if (Disconnected) return;
+            Active = false;
+            Disconnected = true;
+            try
             {
-                if (parameter.Write)
+                Reader.Dispose();
+                Writer.Dispose();
+                client.Close();
+            }
+            catch(Exception)
+            {
+            }
+        }
+
+        async Task SetupAsync()
+        {
+            client = new TcpClient();
+            await client.ConnectAsync("127.0.0.1", 5090);
+            var stream = client.GetStream();
+            Reader = new StreamReader(stream);
+            Writer = new StreamWriter(stream);
+            await SetupParameters();
+        }
+
+        Task ServerReadTask;
+        Task SimReadTask;
+        public async Task UpdateAsync()
+        {
+            if (SetupTask != null)
+            {
+                await SetupTask;
+                SetupTask = null;
+                foreach (var parameter in parameters)
                 {
-                    TcpToSimulatorNames[parameter.ServerName] = parameter;
+                    if (parameter.Write)
+                    {
+                        TcpToSimulatorNames[parameter.ServerName] = parameter;
+                    }
+                    else
+                    {
+                        SimulatorToTcpNames[parameter.SimulatorName] = parameter;
+                    }
+                    if (parameter.Write)
+                    {
+                        if (!TcpToSimulatorNames.ContainsKey(parameter.ServerName)) TcpToSimulatorNames[parameter.ServerName] = parameter;
+                        await SendServer("register("+parameter.ServerName+')');
+                    }
                 }
-                else
+                await Writer.FlushAsync();
+            }
+            if (!Active) return;
+            if (ServerReadTask == null || ServerReadTask.IsCompleted) ServerReadTask = ReadServer();
+            if (SimReadTask == null || SimReadTask.IsCompleted) SimReadTask = ReadSimulator();
+            await Task.WhenAny(ServerReadTask, SimReadTask);
+            if (ServerReadTask.IsFaulted) throw ServerReadTask.Exception;
+            if (SimReadTask.IsFaulted) throw SimReadTask.Exception;
+        }
+        public async Task ReadServer()
+        {
+            string line = await Reader.ReadLineAsync();
+            if (line.StartsWith("register("))
+            {
+                
+            }
+            else if (line.Contains('='))
+            {
+                var spl = line.Split('=');
+                if (TcpToSimulatorNames.TryGetValue(spl[0], out var parameter) && double.TryParse(spl[1], NumberStyles.Number, CultureInfo.InvariantCulture.NumberFormat, out double value))
                 {
-                    SimulatorToTcpNames[parameter.SimulatorName] = parameter;
-                }
-                if (parameter.Write)
-                {
-                    //Console.WriteLine("register("+parameter.ServerName+")\n");
-                    if (!TcpToSimulatorNames.ContainsKey(parameter.ServerName)) TcpToSimulatorNames[parameter.ServerName] = parameter;
-                    var data = Encoding.UTF8.GetBytes("register("+parameter.ServerName+")\n");
-                    stream.Write(data, 0, data.Length);
+                    if (parameter.ServerMin.HasValue)
+                    {
+                        value = (value - parameter.ServerMin.Value)/(parameter.ServerMax.Value - parameter.ServerMin.Value);
+                        if (parameter.SimulatorMin.HasValue)
+                        {
+                            value = parameter.SimulatorMin.Value + value * (parameter.SimulatorMax.Value-parameter.SimulatorMin.Value);
+                        }
+                    }
+                    await SendSimulator(parameter, value);
                 }
             }
-            new Thread(TCPToOR).Start();
         }
-        public abstract void SendSimulator(Parameter parameter, double value);
-        public abstract void SetupParameters(List<Parameter> parameters);
-        public void SendServer(Parameter parameter, double value)
+        public abstract Task ReadSimulator();
+        public abstract Task SendSimulator(Parameter parameter, double value);
+        public abstract Task SetupParameters();
+        public async Task SendServer(Parameter parameter, double value)
         {
             if (parameter.ServerMin.HasValue)
             {
@@ -76,57 +142,15 @@ namespace SerialToServer
                 }
                 value = parameter.ServerMin.Value + value * (parameter.ServerMax.Value - parameter.ServerMin.Value);
             }
-            SendServer(parameter.ServerName, value.ToString().Replace(',','.'));
+            await SendServer(parameter.ServerName, value.ToString().Replace(',','.'));
         }
-        public void SendServer(string parameter, string value)
+        public async Task SendServer(string parameter, string value)
         {
-            var data = Encoding.UTF8.GetBytes(parameter+"="+value+"\n");
-            stream.Write(data, 0, data.Length);
+            await SendServer(parameter+'='+value);
         }
-        public void SendServer(string line)
+        public async Task SendServer(string line)
         {
-            var data = Encoding.UTF8.GetBytes(line+"\n");
-            stream.Write(data, 0, data.Length);
-        }
-        void TCPToOR()
-        {
-            while (!Active)
-            {
-                Thread.Sleep(1000);
-            }
-            while (Active)
-            {
-                string line = reader.ReadLine();
-                //Console.WriteLine(line);
-                if (line.StartsWith("register("))
-                {
-                    
-                }
-                else if (line.Contains('='))
-                {
-                    var spl = line.Split('=');
-                    if (TcpToSimulatorNames.TryGetValue(spl[0], out var parameter) && double.TryParse(spl[1], NumberStyles.Number, CultureInfo.InvariantCulture.NumberFormat, out double value))
-                    {
-                        if (parameter.ServerMin.HasValue)
-                        {
-                            value = (value - parameter.ServerMin.Value)/(parameter.ServerMax.Value - parameter.ServerMin.Value);
-                            if (parameter.SimulatorMin.HasValue)
-                            {
-                                value = parameter.SimulatorMin.Value + value * (parameter.SimulatorMax.Value-parameter.SimulatorMin.Value);
-                            }
-                        }
-                        SendSimulator(parameter, value);
-                    }
-                }
-            }
-            try
-            {
-                client.Close();
-            }
-            catch (Exception e)
-            {
-                
-            }
+            await Writer.WriteLineAsync(line);
         }
     }
     public class OrWeb : SimulatorInterface
@@ -153,16 +177,15 @@ namespace SerialToServer
         }
         public OrWeb() : base("parameters_or.json")
         {
-            new Thread(Read).Start();
         }
-        public override void SetupParameters(List<Parameter> parameters)
+        public override async Task SetupParameters()
         {
             var indexes = new Dictionary<string, int>();
-            List<ControlValue> values = GetValues();
+            List<ControlValue> values = await GetValues();
             while(values == null)
             {
-                Thread.Sleep(5000);
-                values = GetValues();
+                await Task.Delay(5000);
+                values = await GetValues();
             }
             Active = true;
             foreach (var cv in values)
@@ -183,79 +206,61 @@ namespace SerialToServer
                         }
                     }
                 }
-            }         
+            }       
         }
 
-        private void Read()
+        public override async Task ReadSimulator()
         {
-            while (!Active)
+            var indexes = new Dictionary<string, int>();
+            var values = await GetValues();
+            foreach (var cv in values)
             {
-                Thread.Sleep(2000);
-            }
-            while (Active)
-            {
-                var indexes = new Dictionary<string, int>();
-                var values = GetValues();
-                if (values == null)
+                int index = 0;
+                if (indexes.ContainsKey(cv.TypeName)) index = indexes[cv.TypeName] + 1;
+                indexes[cv.TypeName] = index;
+                if (SimulatorToTcpNames.TryGetValue(cv.TypeName+':'+index, out var parameter))
                 {
-                    Active = false;
-                    Failed = true;
-                    return;
+                    double v = cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue);
+                    if (cv.MaxValue - cv.MinValue == 0) v = cv.RangeFraction;
+                    await SendServer(parameter, v);
                 }
-                foreach (var cv in values)
-                {
-                    int index = 0;
-                    if (indexes.ContainsKey(cv.TypeName)) index = indexes[cv.TypeName] + 1;
-                    indexes[cv.TypeName] = index;
-                    if (SimulatorToTcpNames.TryGetValue(cv.TypeName+':'+index, out var parameter))
-                    {
-                        double v = cv.MinValue + cv.RangeFraction * (cv.MaxValue - cv.MinValue);
-                        if (cv.MaxValue - cv.MinValue == 0) v = cv.RangeFraction;
-                        SendServer(parameter, v);
-                    }
-                }
-                Thread.Sleep(250);
             }
+            await Writer.FlushAsync();
+            await Task.Delay(250);
         }
-        public override void SendSimulator(Parameter parameter, double value)
+        public override async Task SendSimulator(Parameter parameter, double value)
         {
             var spl = parameter.SimulatorName.Split(':');
-            ControlValuePost cv = new ControlValuePost();
-            cv.TypeName = spl[0];
+            ControlValuePost cv = new ControlValuePost
+            {
+                TypeName = spl[0],
+                Value = value
+            };
             if (spl.Length > 1) cv.ControlIndex = int.Parse(spl[1]);
-            cv.Value = value;
             string json = JsonConvert.SerializeObject(new ControlValuePost[]{cv});
             var bytes = Encoding.UTF8.GetBytes(json);
-            try
+            var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.ContentLength = bytes.Length;
+            using (var stream = request.GetRequestStream())
             {
-                var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
-                request.Method = "POST";
-                request.ContentType = "application/json";
-                request.ContentLength = bytes.Length;
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(bytes, 0, bytes.Length);
-                    using (var response = request.GetResponse()) {}
-                }
-            }
-            catch (Exception e)
-            {
-                Active = false;
-                Failed = true;
-                Console.WriteLine(e);
+                await stream.WriteAsync(bytes, 0, bytes.Length);
+                using (var response = await request.GetResponseAsync()) {}
             }
         }
-        List<ControlValue> GetValues()
+        async Task<List<ControlValue>> GetValues()
         {
             try
             {
                 var request = WebRequest.Create("http://localhost:2150/API/CABCONTROLS");
                 request.Method = "GET";
-                return JsonConvert.DeserializeObject<List<ControlValue>>(new StreamReader(request.GetResponse().GetResponseStream()).ReadToEnd());
+                var response = await request.GetResponseAsync();
+                return JsonConvert.DeserializeObject<List<ControlValue>>(await new StreamReader(response.GetResponseStream()).ReadToEndAsync());
             }
             catch (Exception e)
             {
-                if (Active) Console.WriteLine(e);
+                if (Active) throw e;
                 return null;
             }
         }
@@ -268,63 +273,73 @@ namespace SerialToServer
         [DllImport("RailDriver64.dll")]
         internal static extern void SetControllerValue(int Control, float Value);
         [DllImport("RailDriver64.dll")]
-        internal static extern Single GetControllerValue(int Control, int Mode);
+        internal static extern float GetControllerValue(int Control, int Mode);
         [DllImport("RailDriver64.dll")]
         internal static extern void SetRailDriverConnected(bool Value);
         [DllImport("RailDriver64.dll")]
         internal static extern void SetRailSimConnected(bool Value);
         [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern bool GetRailSimConnected();
+        [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr GetLocoName();
         [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr GetControllerList();
+        [DllImport("RailDriver64.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern bool GetRailSimLocoChanged();
         Dictionary<Parameter, int> ParameterIndex = new Dictionary<Parameter, int>();
         Dictionary<Parameter, double> LastValues = new Dictionary<Parameter, double>();
         public string RWPath = "";
         public RwDll() : base("parameters_rw.json")
         {
             Time = DateTime.UtcNow;
-            
-            new Thread(Read).Start();
-
-            new Thread(Antenna).Start();
         }
         int SpeedometerControlIndex;
         double distance;
         double sentDistance;
         DateTime Time;
-        private void Read()
+        Task DllReadTask;
+        Task AntennaReadTask;
+        StreamReader AntennaReader;
+        public override async Task ReadSimulator()
         {
-            while (!Active)
+            if (DllReadTask == null || DllReadTask.IsCompleted) DllReadTask = ReadDll();
+            if (AntennaReadTask == null || AntennaReadTask.IsCompleted) AntennaReadTask = ReadAntenna();
+            await Task.WhenAny(DllReadTask, AntennaReadTask);
+            if (DllReadTask.IsFaulted) throw DllReadTask.Exception;
+            if (AntennaReadTask.IsFaulted) throw AntennaReadTask.Exception;
+        }
+        async Task ReadDll()
+        {
+            /*if (!GetRailSimConnected() || GetRailSimLocoChanged())
             {
-                Thread.Sleep(1000);
-            }
-            while (Active)
+                Disconnect();
+                return;
+            }*/
+            foreach (var kvp in ParameterIndex)
             {
-                foreach (var kvp in ParameterIndex)
+                var parameter = kvp.Key;
+                if (!parameter.Write)
                 {
-                    var parameter = kvp.Key;
-                    if (!parameter.Write)
+                    double value = GetControllerValue(kvp.Value, 0);
+                    if (!LastValues.TryGetValue(parameter, out double val) || Math.Abs(value-val) > 0.01f)
                     {
-                        double value = GetControllerValue(kvp.Value, 0);
-                        if (!LastValues.TryGetValue(parameter, out double val) || Math.Abs(value-val) > 0.01f)
-                        {
-                            LastValues[parameter] = value;
-                            SendServer(parameter, value);
-                        }
+                        LastValues[parameter] = value;
+                        await SendServer(parameter, value);
                     }
                 }
-                double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
-                distance += Math.Abs(speed)*(DateTime.UtcNow-Time).TotalSeconds;
-                Time = DateTime.UtcNow;
-                if (distance - sentDistance > 1)
-                {
-                    SendServer("distance", distance.ToString().Replace(',','.'));
-                    sentDistance = distance;
-                }
-                Thread.Sleep(100);
             }
+            double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
+            distance += Math.Abs(speed)*(DateTime.UtcNow-Time).TotalSeconds;
+            Time = DateTime.UtcNow;
+            if (distance - sentDistance > 1)
+            {
+                await SendServer("distance", distance.ToString().Replace(',','.'));
+                sentDistance = distance;
+            }
+            await Writer.FlushAsync();
+            await Task.Delay(100);
         }
-        public override void SetupParameters(List<Parameter> parameters)
+        public override async Task SetupParameters()
         {
             RWPath = File.ReadAllLines("railworks_path.txt")[0];
             SetDllDirectory(Path.Combine(RWPath, "plugins"));
@@ -333,17 +348,18 @@ namespace SerialToServer
             {
                 SetRailDriverConnected(true);
                 SetRailSimConnected(true);
-                loco = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(GetLocoName());
-                Thread.Sleep(500);
+                loco = Marshal.PtrToStringAnsi(GetLocoName());
+                await Task.Delay(500);
             }
             Active = true;
             Console.WriteLine(loco);
-            string tmp = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(GetControllerList());
+            string tmp = Marshal.PtrToStringAnsi(GetControllerList());
             Console.WriteLine(tmp);
             var controls = tmp.Split(new string[] { "::" }, StringSplitOptions.RemoveEmptyEntries).ToList();
             foreach (var parameter in parameters)
             {
                 int index = controls.IndexOf(parameter.SimulatorName);
+                if (index < 0) continue;
                 ParameterIndex[parameter] = index;
                 if (!parameter.SimulatorMin.HasValue)
                 {
@@ -353,36 +369,58 @@ namespace SerialToServer
             }
             SpeedometerControlIndex = controls.IndexOf("SpeedometerKPH");
         }
-        public override void SendSimulator(Parameter parameter, double value)
+        public override async Task SendSimulator(Parameter parameter, double value)
         {
             if (ParameterIndex.TryGetValue(parameter, out int index))
             {
                 SetControllerValue(index, (float)value);
             }
+            await Task.CompletedTask;
         }
-        public void Antenna()
+        CancellationTokenSource Cancellation;
+        FileSystemWatcher fsw;
+        async Task ReadAntenna()
         {
-            while (!File.Exists(Path.Combine(RWPath, "plugins", "ServerData.txt")))
+            if (AntennaReader == null)
             {
-                Thread.Sleep(5000);
-            }
-            var wh = new AutoResetEvent(false);
-            var fsw = new FileSystemWatcher(Path.Combine(RWPath, "plugins"));
-            fsw.Filter = "ServerData.txt";
-            fsw.EnableRaisingEvents = true;
-            fsw.Changed += (s,e) => wh.Set();
-            using (var fs = new FileStream(Path.Combine(RWPath, "plugins", "ServerData.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-            using (var reader = new StreamReader(fs))
-            {
-                fs.Seek(fs.Length, SeekOrigin.Begin);
-                while (true)
+                while (!File.Exists(Path.Combine(RWPath, "plugins", "ServerData.txt")))
                 {
-                    var line = reader.ReadLine();
-
-                    if (!String.IsNullOrWhiteSpace(line)) SendServer(line);
-                    else wh.WaitOne(100);
+                    await Task.Delay(5000);
                 }
+                fsw = new FileSystemWatcher(Path.Combine(RWPath, "plugins"))
+                {
+                    Filter = "ServerData.txt",
+                    EnableRaisingEvents = true
+                };
+                fsw.Changed += (s,e) =>
+                {
+                    var oldCancellation = Cancellation;
+                    Cancellation = new CancellationTokenSource();
+                    oldCancellation.Cancel();
+                };
+                var fs = new FileStream(Path.Combine(RWPath, "plugins", "ServerData.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                AntennaReader = new StreamReader(fs);
             }
+            var line = await AntennaReader.ReadLineAsync();
+            if (!string.IsNullOrWhiteSpace(line)) await SendServer(line);
+            else
+            {
+                await Writer.FlushAsync();
+                await Task.Delay(1000, Cancellation.Token);
+            }
+        }
+        public override void Disconnect()
+        {
+            if (Disconnected) return;
+            try
+            {
+                AntennaReader.Dispose();
+                fsw.Dispose();
+            }
+            catch(Exception)
+            {
+            }
+            base.Disconnect();
         }
     }
 }

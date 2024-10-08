@@ -14,67 +14,90 @@ namespace SerialToServer
     {
         private SerialPort serial;
         private TcpClient c;
-        private NetworkStream network;
-        private StreamReader sr;
+        private StreamReader srTcp;
+        private StreamReader srSerial;
+        private StreamWriter swTcp;
+        private StreamWriter swSerial;
+        public string Port;
         public bool Connected;
-        public puente(string Port)
+        public bool Disconnected;
+        Task SetupTask;
+        Task SerialToTcpTask;
+        Task TcpToSerialTask;
+        public puente(string port)
         {
+            Port = port;
+            SetupTask = Setup();
+        }
+
+        public async Task Setup()
+        {
+            c = new TcpClient();
+            await c.ConnectAsync("127.0.0.1", 5090);
+            var stream = c.GetStream();
+            srTcp = new StreamReader(stream);
+            swTcp = new StreamWriter(stream);
+
             serial = new SerialPort(Port, 115200)
             {
                 Encoding = Encoding.UTF8
             };
-            c = new TcpClient("127.0.0.1", 5090);
-            network = c.GetStream();
-            sr = new StreamReader(network);
             serial.Open();
             serial.DtrEnable = true;
-            Thread.Sleep(5000);
+            srSerial = new StreamReader(serial.BaseStream);
+            swSerial = new StreamWriter(serial.BaseStream);
+            await Task.Delay(5000);
+
             Connected = true;
-            Thread SerialTCP = new Thread(SerialToTCP);
-            Thread TCPSerial = new Thread(TCPToSerial);
-            SerialTCP.Start();
-            TCPSerial.Start();
         }
 
-        private void SerialToTCP()
+        public async Task SerialToTcpAsync()
         {
-            while (Connected)
-            {
-                try
-                { 
-                    var data = Encoding.UTF8.GetBytes(serial.ReadLine()+'\n');
-                    network.Write(data, 0, data.Length);
-                }
-                catch (Exception e)
-                {
-                    Connected = false;
-                    Console.WriteLine(e.ToString());
-                }
-            }
+            string line = await srSerial.ReadLineAsync();
+            await swTcp.WriteLineAsync(line);
+            await swTcp.FlushAsync();
         }
 
-        private void TCPToSerial()
+        public async Task TcpToSerialAsync()
         {
-            while (Connected)
+            string line = await srTcp.ReadLineAsync();
+            serial.WriteLine(line);
+            //await swSerial.WriteLineAsync(line);
+            //await swSerial.FlushAsync();
+        }
+
+        public async Task UpdateAsync()
+        {
+            if (SetupTask != null)
             {
-                try
-                {
-                    serial.WriteLine(sr.ReadLine());
-                }
-                catch (Exception e)
-                {
-                    Connected = false;
-                    Console.WriteLine(e.ToString());
-                }
+                await SetupTask;
+                SetupTask = null;
             }
+            if (!Connected) return;
+            if (SerialToTcpTask == null || SerialToTcpTask.IsCompleted) SerialToTcpTask = SerialToTcpAsync();
+            if (TcpToSerialTask == null || TcpToSerialTask.IsCompleted) TcpToSerialTask = TcpToSerialAsync();
+            await Task.WhenAny(SerialToTcpTask, TcpToSerialTask);
+            if (SerialToTcpTask.IsFaulted) throw SerialToTcpTask.Exception;
+            if (TcpToSerialTask.IsFaulted) throw TcpToSerialTask.Exception; 
         }
 
         public void Disconnect()
         {
-            if (!Connected) return;
+            if (Disconnected) return;
+            Disconnected = true;
             Connected = false;
-            serial.Close();
-            c.Close();
+            try
+            {
+                srSerial.Close();
+                srTcp.Close();
+                swSerial.Close();
+                swTcp.Close();
+                serial.Close();
+                c.Close();
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 }

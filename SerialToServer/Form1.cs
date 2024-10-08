@@ -10,9 +10,12 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Management;
 using System.Xml.Linq;
 using Timer = System.Windows.Forms.Timer;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace SerialToServer
 {
@@ -21,91 +24,132 @@ namespace SerialToServer
 
         SerialPort serial = new SerialPort();
         Dictionary<string, puente> puentes = new Dictionary<string, puente>();
+        Dictionary<string, Task> puentesTask = new Dictionary<string, Task>();
         Dictionary<string, string> detailsPorts = new Dictionary<string, string>();
         Process process = new Process();
         OrWeb orWeb;
         RwDll rwDll;
         public bool isOpen = false;
         Timer timer = new Timer();
+        CancellationTokenSource Cancellation = new CancellationTokenSource();
+        [DllImport( "kernel32.dll" )]
+        static extern bool AttachConsole( int dwProcessId );
+        private const int ATTACH_PARENT_PROCESS = -1;
         public Form1()
         {
+            //AttachConsole( ATTACH_PARENT_PROCESS );
             InitializeComponent();
             RefreshPorts();
             descriptPort();
-            //Control.CheckForIllegalCrossThreadCalls = false;
             
-            //process.StartInfo.FileName = @"server.exe";
-            //process.Start();
+            process.StartInfo.FileName = @"server.exe";
+            process.Start();
             btnOpenServer.Text = "Stop Server";
             isOpen = true;
             
-            timer.Interval = (10000);
+            timer.Interval = 10000;
             timer.Tick += new EventHandler((s,a) => {
                 RefreshPorts();
-                new Thread(() => {
-                    if (orWeb != null && !orWeb.Active && orWeb.Failed)
-                        orWeb = new OrWeb();
-                    if (rwDll != null && !rwDll.Active && rwDll.Failed)
-                        rwDll = new RwDll();
-                }).Start();
+                bool cancel = false;
+                if (orWeb != null && !orWeb.Active && orWeb.Disconnected)
+                {
+                    orWeb = new OrWeb();
+                    cancel = true;
+                }
+                if (rwDll != null && !rwDll.Active && rwDll.Disconnected)
+                {
+                    rwDll = new RwDll();
+                    cancel = true;
+                }
+                foreach (var key in puentes.Keys.ToList())
+                {
+                    if (puentes[key].Disconnected)
+                    {
+                        puentes[key] = new puente(key);
+                        cancel = true;
+                    }
+                }
+                if (cancel)
+                {
+                    var oldCancellation = Cancellation;
+                    Cancellation = new CancellationTokenSource();
+                    oldCancellation.Cancel();
+                }
             });
             timer.Start();
-            new Thread(() => {
-                Thread.Sleep(5000);
+            Task.Run(async () => {
+                await Task.Delay(5000);
                 cbEnableORTSTCP.Checked = true;
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                 cbEnableRWTCP.Checked = true;
-                cbxAllPorts.Checked = false;
-            }).Start();
+                cbxAllPorts.Checked = true;
+            });
+            Task.Run(UpdateAsync);
         }
 
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
+            if (lbxPortsDisp.SelectedIndex < 0) return;
             lbxConnected.Items.Add((string)lbxPortsDisp.SelectedItem);
-            //puente p = new puente((string)lbxPortsDisp.SelectedItem);
             puentes.Add((string)lbxPortsDisp.SelectedItem, new puente((string)lbxPortsDisp.SelectedItem));
+            var oldCancellation = Cancellation;
+            Cancellation = new CancellationTokenSource();
+            oldCancellation.Cancel();
             try
             {
                 lbxPortsDisp.Items.RemoveAt(lbxPortsDisp.SelectedIndex);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
             }
         }
 
         private void btnDelete_Click(object sender, EventArgs e)
         {
-            if (lbxPortsDisp.SelectedIndex.ToString() != null)
+            if (lbxConnected.SelectedIndex < 0) return;
+            lbxPortsDisp.Items.Add((string)lbxConnected.SelectedItem);
+            puente p = puentes[(string)lbxConnected.SelectedItem];
+            p.Disconnect();
+            puentes.Remove((string)lbxConnected.SelectedItem);
+            try
             {
-                lbxPortsDisp.Items.Add((string)lbxConnected.SelectedItem);
-                puente p = puentes[(string)lbxConnected.SelectedItem];
-                p.Disconnect();
-                puentes.Remove((string)lbxConnected.SelectedItem);
                 lbxConnected.Items.RemoveAt(lbxConnected.SelectedIndex);
+            }
+            catch (Exception ex)
+            {
             }
         }
 
         void RefreshPorts()
         {
+            var selDisp = lbxPortsDisp.SelectedItem;
+            var selCon = lbxConnected.SelectedItem;
             lbxPortsDisp.Items.Clear();
-            for (int i = 0; i < lbxConnected.Items.Count; i++)
-            {
-                if (puentes.TryGetValue(lbxConnected.Items[i].ToString(), out var p))
-                {
-                    if (p.Connected) continue;
-                    puentes.Remove(lbxConnected.Items[i].ToString());
-                }
-                lbxConnected.Items.RemoveAt(i);
-            }
-            foreach (string port in SerialPort.GetPortNames())
+            lbxConnected.Items.Clear();
+            var ports = SerialPort.GetPortNames();
+            foreach (string port in ports)
             {
                 if (port == "COM1" || port == "COM2") continue;
-                bool exists = false;
-                for (int i = 0; i < lbxConnected.Items.Count; i++)
+                if (puentes.ContainsKey(port)) lbxConnected.Items.Add(port);
+                else if (cbxAllPorts.Checked && !port.StartsWith("/dev/ttyS"))
                 {
-                    if (lbxConnected.Items[i].ToString() == port)
+                    lbxConnected.Items.Add(port);
+                    puentes.Add(port, new puente(port));
+                    var oldCancellation = Cancellation;
+                    Cancellation = new CancellationTokenSource();
+                    oldCancellation.Cancel();
+                }
+                else lbxPortsDisp.Items.Add(port);
+            }
+            if (selDisp != null && lbxPortsDisp.Items.Contains(selDisp)) lbxPortsDisp.SelectedItem = selDisp;
+            if (selCon != null && lbxConnected.Items.Contains(selCon)) lbxConnected.SelectedItem = selCon;
+            foreach (var key in puentes.Keys.ToList())
+            {
+                bool exists = false;
+                foreach (string port in ports)
+                {
+                    if (port == key)
                     {
                         exists = true;
                         break;
@@ -113,14 +157,50 @@ namespace SerialToServer
                 }
                 if (!exists)
                 {
-                    if (cbxAllPorts.Checked)
-                    {
-                        lbxConnected.Items.Add(port);
-                        puentes.Add(port, new puente(port));
-                    }
-                    else lbxPortsDisp.Items.Add(port);
+                    puentes[key].Disconnect();
+                    puentes.Remove(key);
                 }
             }
+        }
+
+        Dictionary<string,Task> tasks = new Dictionary<string,Task>();
+        public async Task UpdateAsync()
+        {
+            foreach (var puente in puentes)
+            {
+                if (!tasks.ContainsKey(puente.Key) && !puente.Value.Disconnected) tasks[puente.Key] = puente.Value.UpdateAsync();
+            }
+            if (!tasks.ContainsKey("RwDll") && rwDll != null && !rwDll.Disconnected) tasks["RwDll"] = rwDll.UpdateAsync();
+            if (!tasks.ContainsKey("OrWeb") && orWeb != null && !orWeb.Disconnected) tasks["OrWeb"] = orWeb.UpdateAsync();
+            if (!tasks.ContainsKey("Cancel")) tasks["Cancel"] = Task.Delay(-1, Cancellation.Token);
+            await Task.WhenAny(tasks.Values);
+            foreach (var key in tasks.Keys.ToList())
+            {
+                var task = tasks[key];
+                if (task.IsCompleted) tasks.Remove(key);
+                if (task.IsFaulted)
+                {
+                    switch (key)
+                    {
+                        case "OrWeb":
+                            orWeb?.Disconnect();
+                            break;
+                        case "RwDll":
+                            rwDll?.Disconnect();
+                            break;
+                        case "Cancel":
+                            break;
+                        default:
+                            if (puentes.TryGetValue(key, out var puente))
+                            {
+                                puente.Disconnect();
+                            }
+                            break;
+                    }
+                    Console.WriteLine(task.Exception);
+                }
+            }
+            Task.Run(UpdateAsync);
         }
 
         private void descriptPort()
@@ -134,32 +214,7 @@ namespace SerialToServer
 
         private void btnRefres_Click(object sender, EventArgs e)
         {
-            new Thread(RefreshPorts).Start();
-            //using (var searcher = new ManagementObjectSearcher("SELECT DeviceID, Caption, Description FROM WIN32_SerialPort"))
-            //{
-            //    string[] portnames = SerialPort.GetPortNames();
-
-            //    var ports = searcher.Get().Cast<ManagementBaseObject>()
-            //        .ToDictionary(p => p["DeviceID"].ToString(), p => p["Description"]);
-
-
-            //    foreach (string name in portnames)
-            //    {
-            //        if (ports.TryGetValue(name, out var Description))
-            //        {
-            //            MessageBox.Show($"{name} - {Description}");
-            //        }
-            //        else
-            //        {
-            //            MessageBox.Show(name);
-            //        }
-            //    }
-            //}
-            //ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * from WIN32_SerialPort");
-            //foreach (ManagementObject port in searcher.Get())
-            //{
-            //    tbFabricante.Text = (string)port.GetPropertyValue("Description");
-            //}
+            RefreshPorts();
         }
         private void btnOpenServer_Click(object sender, EventArgs e)
         {
@@ -194,14 +249,17 @@ namespace SerialToServer
             bool check = cb.Checked;
             if(check)
             {
-                if (orWeb != null) orWeb.Active = false;
-                new Thread(() => orWeb = new OrWeb()).Start();
+                orWeb?.Disconnect();
+                orWeb = new OrWeb();
+                var oldCancellation = Cancellation;
+                Cancellation = new CancellationTokenSource();
+                oldCancellation.Cancel();
             }
             else
             {
                 if (orWeb != null)
                 {
-                    orWeb.Active = false;
+                    orWeb.Disconnect();
                     orWeb = null;
                 }
                 lbxControllers.Items.Clear();
@@ -214,14 +272,17 @@ namespace SerialToServer
             bool check = cb.Checked;
             if(check)
             {
-                if (rwDll != null) rwDll.Active = false;
-                new Thread(() => rwDll = new RwDll()).Start();
+                rwDll?.Disconnect();
+                rwDll = new RwDll();
+                var oldCancellation = Cancellation;
+                Cancellation = new CancellationTokenSource();
+                oldCancellation.Cancel();
             }
             else
             {
                 if (rwDll != null)
                 {
-                    rwDll.Active = false;
+                    rwDll.Disconnect();
                     rwDll = null;
                 }
                 lbxControllers.Items.Clear();

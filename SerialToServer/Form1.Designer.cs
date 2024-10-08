@@ -206,9 +206,10 @@
             this.btnConfigParametros.Name = "btnConfigParametros";
             this.btnConfigParametros.Size = new System.Drawing.Size(152, 52);
             this.btnConfigParametros.TabIndex = 3;
-            this.btnConfigParametros.Text = "Cofigurador";
+            this.btnConfigParametros.Text = "Configurador";
             this.btnConfigParametros.UseVisualStyleBackColor = true;
             this.btnConfigParametros.Click += new System.EventHandler(this.btnConfigParametros_Click);
+            this.btnConfigParametros.Visible = false;
             // 
             // cbEnableRWTCP
             // 
