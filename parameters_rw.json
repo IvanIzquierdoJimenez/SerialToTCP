@@ -20,5 +20,10 @@
         "ServerName": "speed",
         "SimulatorName": "SpeedometerKPH",
         "Write": false
+    },
+    {
+        "ServerName": "controller::horn",
+        "SimulatorName": "Horn",
+        "Write": true
     }
 ]

@@ -26,6 +26,7 @@ namespace SerialToServer
         Task TcpToSerialTask;
         public puente(string port)
         {
+            Console.WriteLine("Puente: "+port);
             Port = port;
             SetupTask = Setup();
         }
@@ -44,9 +45,13 @@ namespace SerialToServer
             };
             serial.Open();
             serial.DtrEnable = true;
+            serial.RtsEnable = true;
+            await Task.Delay(1000);
+            //serial.DtrEnable = false;
+            serial.RtsEnable = false;
             srSerial = new StreamReader(serial.BaseStream);
             swSerial = new StreamWriter(serial.BaseStream);
-            await Task.Delay(5000);
+            await Task.Delay(4000);
 
             Connected = true;
         }
@@ -61,9 +66,9 @@ namespace SerialToServer
         public async Task TcpToSerialAsync()
         {
             string line = await srTcp.ReadLineAsync();
-            serial.WriteLine(line);
-            //await swSerial.WriteLineAsync(line);
-            //await swSerial.FlushAsync();
+            if (Form1.Mono) serial.WriteLine(line);
+            else await swSerial.WriteLineAsync(line);
+            await swSerial.FlushAsync();
         }
 
         public async Task UpdateAsync()
@@ -78,11 +83,12 @@ namespace SerialToServer
             if (TcpToSerialTask == null || TcpToSerialTask.IsCompleted) TcpToSerialTask = TcpToSerialAsync();
             await Task.WhenAny(SerialToTcpTask, TcpToSerialTask);
             if (SerialToTcpTask.IsFaulted) throw SerialToTcpTask.Exception;
-            if (TcpToSerialTask.IsFaulted) throw TcpToSerialTask.Exception; 
+            if (TcpToSerialTask.IsFaulted) throw TcpToSerialTask.Exception;
         }
 
         public void Disconnect()
         {
+            Console.WriteLine("Disconnect: "+Port);
             if (Disconnected) return;
             Disconnected = true;
             Connected = false;

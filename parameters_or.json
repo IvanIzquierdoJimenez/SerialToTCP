@@ -29,7 +29,7 @@
         "Write": true
     },
     {
-        "ServerName": "cruise_speed",
+        "ServerName": "controller::cruise_speed",
         "SimulatorName": "ORTS_SELECTED_SPEED_SELECTOR",
         "ServerMin": 0,
         "ServerMax": 3.6,

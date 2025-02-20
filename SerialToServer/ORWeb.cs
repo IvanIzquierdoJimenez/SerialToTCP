@@ -38,6 +38,7 @@ namespace SerialToServer
         protected StreamWriter Writer;
         public bool Active = false;
         public bool Disconnected = false;
+        public bool UnrecoverableFault = false;
         Task SetupTask;
         protected List<Parameter> parameters;
         public SimulatorInterface(string filename)
@@ -291,30 +292,20 @@ namespace SerialToServer
         public string RWPath = "";
         public RwDll() : base("parameters_rw.json")
         {
-            Time = DateTime.UtcNow;
+            //Time = DateTime.UtcNow;
         }
-        int SpeedometerControlIndex;
+        /*int SpeedometerControlIndex;
         double distance;
         double sentDistance;
-        DateTime Time;
-        Task DllReadTask;
-        Task AntennaReadTask;
-        StreamReader AntennaReader;
+        DateTime Time;*/
+        string LocoName;
         public override async Task ReadSimulator()
         {
-            if (DllReadTask == null || DllReadTask.IsCompleted) DllReadTask = ReadDll();
-            if (AntennaReadTask == null || AntennaReadTask.IsCompleted) AntennaReadTask = ReadAntenna();
-            await Task.WhenAny(DllReadTask, AntennaReadTask);
-            if (DllReadTask.IsFaulted) throw DllReadTask.Exception;
-            if (AntennaReadTask.IsFaulted) throw AntennaReadTask.Exception;
-        }
-        async Task ReadDll()
-        {
-            /*if (!GetRailSimConnected() || GetRailSimLocoChanged())
+            if (Marshal.PtrToStringAnsi(GetLocoName()) != LocoName)
             {
                 Disconnect();
                 return;
-            }*/
+            }
             foreach (var kvp in ParameterIndex)
             {
                 var parameter = kvp.Key;
@@ -328,14 +319,14 @@ namespace SerialToServer
                     }
                 }
             }
-            double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
+            /*double speed = GetControllerValue(SpeedometerControlIndex, 0)/3.6f;
             distance += Math.Abs(speed)*(DateTime.UtcNow-Time).TotalSeconds;
             Time = DateTime.UtcNow;
             if (distance - sentDistance > 1)
             {
                 await SendServer("distance", distance.ToString().Replace(',','.'));
                 sentDistance = distance;
-            }
+            }*/
             await Writer.FlushAsync();
             await Task.Delay(100);
         }
@@ -343,16 +334,22 @@ namespace SerialToServer
         {
             RWPath = File.ReadAllLines("railworks_path.txt")[0];
             SetDllDirectory(Path.Combine(RWPath, "plugins"));
-            string loco = null;
-            while (loco == null || loco == "")
+            string path = Path.Combine(RWPath, "plugins", "RailDriver64.dll");
+            if (!File.Exists(path))
+            {
+                UnrecoverableFault = true;
+                throw new FileNotFoundException("RailWorks path is invalid!", path);
+            }
+            LocoName = null;
+            while (LocoName == null || LocoName == "")
             {
                 SetRailDriverConnected(true);
                 SetRailSimConnected(true);
-                loco = Marshal.PtrToStringAnsi(GetLocoName());
+                LocoName = Marshal.PtrToStringAnsi(GetLocoName());
                 await Task.Delay(500);
             }
             Active = true;
-            Console.WriteLine(loco);
+            Console.WriteLine(LocoName);
             string tmp = Marshal.PtrToStringAnsi(GetControllerList());
             Console.WriteLine(tmp);
             var controls = tmp.Split(new string[] { "::" }, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -367,7 +364,7 @@ namespace SerialToServer
                     parameter.SimulatorMax = GetControllerValue(index, 2);
                 }
             }
-            SpeedometerControlIndex = controls.IndexOf("SpeedometerKPH");
+            //SpeedometerControlIndex = controls.IndexOf("SpeedometerKPH");
         }
         public override async Task SendSimulator(Parameter parameter, double value)
         {
@@ -376,51 +373,6 @@ namespace SerialToServer
                 SetControllerValue(index, (float)value);
             }
             await Task.CompletedTask;
-        }
-        CancellationTokenSource Cancellation;
-        FileSystemWatcher fsw;
-        async Task ReadAntenna()
-        {
-            if (AntennaReader == null)
-            {
-                while (!File.Exists(Path.Combine(RWPath, "plugins", "ServerData.txt")))
-                {
-                    await Task.Delay(5000);
-                }
-                fsw = new FileSystemWatcher(Path.Combine(RWPath, "plugins"))
-                {
-                    Filter = "ServerData.txt",
-                    EnableRaisingEvents = true
-                };
-                fsw.Changed += (s,e) =>
-                {
-                    var oldCancellation = Cancellation;
-                    Cancellation = new CancellationTokenSource();
-                    oldCancellation.Cancel();
-                };
-                var fs = new FileStream(Path.Combine(RWPath, "plugins", "ServerData.txt"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                AntennaReader = new StreamReader(fs);
-            }
-            var line = await AntennaReader.ReadLineAsync();
-            if (!string.IsNullOrWhiteSpace(line)) await SendServer(line);
-            else
-            {
-                await Writer.FlushAsync();
-                await Task.Delay(1000, Cancellation.Token);
-            }
-        }
-        public override void Disconnect()
-        {
-            if (Disconnected) return;
-            try
-            {
-                AntennaReader.Dispose();
-                fsw.Dispose();
-            }
-            catch(Exception)
-            {
-            }
-            base.Disconnect();
         }
     }
 }

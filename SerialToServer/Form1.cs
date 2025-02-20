@@ -32,12 +32,23 @@ namespace SerialToServer
         public bool isOpen = false;
         Timer timer = new Timer();
         CancellationTokenSource Cancellation = new CancellationTokenSource();
-        [DllImport( "kernel32.dll" )]
-        static extern bool AttachConsole( int dwProcessId );
-        private const int ATTACH_PARENT_PROCESS = -1;
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern int AllocConsole();
+        public static bool Mono = false;
         public Form1()
         {
-            //AttachConsole( ATTACH_PARENT_PROCESS );
+            Mono = Type.GetType ("Mono.Runtime") != null;
+            if (!Mono)
+            {
+                try
+                {
+                    AllocConsole();
+                }
+                catch(Exception e)
+                {
+
+                }
+            }
             InitializeComponent();
             RefreshPorts();
             descriptPort();
@@ -84,7 +95,7 @@ namespace SerialToServer
                 cbEnableRWTCP.Checked = true;
                 cbxAllPorts.Checked = true;
             });
-            Task.Run(UpdateAsync);
+            _ = UpdateLoopAsync();
         }
 
 
@@ -132,7 +143,7 @@ namespace SerialToServer
             {
                 if (port == "COM1" || port == "COM2") continue;
                 if (puentes.ContainsKey(port)) lbxConnected.Items.Add(port);
-                else if (cbxAllPorts.Checked && !port.StartsWith("/dev/ttyS"))
+                else if (cbxAllPorts.Checked && !port.StartsWith("/dev/ttyS") && !port.StartsWith("COM1") && !port.StartsWith("COM2"))
                 {
                     lbxConnected.Items.Add(port);
                     puentes.Add(port, new puente(port));
@@ -164,43 +175,53 @@ namespace SerialToServer
         }
 
         Dictionary<string,Task> tasks = new Dictionary<string,Task>();
-        public async Task UpdateAsync()
+        public async Task UpdateLoopAsync()
         {
-            foreach (var puente in puentes)
+            while(true)
             {
-                if (!tasks.ContainsKey(puente.Key) && !puente.Value.Disconnected) tasks[puente.Key] = puente.Value.UpdateAsync();
-            }
-            if (!tasks.ContainsKey("RwDll") && rwDll != null && !rwDll.Disconnected) tasks["RwDll"] = rwDll.UpdateAsync();
-            if (!tasks.ContainsKey("OrWeb") && orWeb != null && !orWeb.Disconnected) tasks["OrWeb"] = orWeb.UpdateAsync();
-            if (!tasks.ContainsKey("Cancel")) tasks["Cancel"] = Task.Delay(-1, Cancellation.Token);
-            await Task.WhenAny(tasks.Values);
-            foreach (var key in tasks.Keys.ToList())
-            {
-                var task = tasks[key];
-                if (task.IsCompleted) tasks.Remove(key);
-                if (task.IsFaulted)
+                foreach (var puente in puentes)
                 {
-                    switch (key)
+                    if (!tasks.ContainsKey(puente.Key) && !puente.Value.Disconnected) tasks[puente.Key] = puente.Value.UpdateAsync();
+                }
+                if (orWeb != null && orWeb.UnrecoverableFault)
+                {
+                    cbEnableORTSTCP.Checked = false;
+                }
+                if (rwDll != null && rwDll.UnrecoverableFault)
+                {
+                    cbEnableRWTCP.Checked = false;
+                }
+                if (!tasks.ContainsKey("RwDll") && rwDll != null && !rwDll.Disconnected) tasks["RwDll"] = rwDll.UpdateAsync();
+                if (!tasks.ContainsKey("OrWeb") && orWeb != null && !orWeb.Disconnected) tasks["OrWeb"] = orWeb.UpdateAsync();
+                if (!tasks.ContainsKey("Cancel")) tasks["Cancel"] = Task.Delay(-1, Cancellation.Token);
+                await Task.WhenAny(tasks.Values);
+                foreach (var key in tasks.Keys.ToList())
+                {
+                    var task = tasks[key];
+                    if (task.IsCompleted) tasks.Remove(key);
+                    if (task.IsFaulted)
                     {
-                        case "OrWeb":
-                            orWeb?.Disconnect();
-                            break;
-                        case "RwDll":
-                            rwDll?.Disconnect();
-                            break;
-                        case "Cancel":
-                            break;
-                        default:
-                            if (puentes.TryGetValue(key, out var puente))
-                            {
-                                puente.Disconnect();
-                            }
-                            break;
+                        switch (key)
+                        {
+                            case "OrWeb":
+                                orWeb?.Disconnect();
+                                break;
+                            case "RwDll":
+                                rwDll?.Disconnect();
+                                break;
+                            case "Cancel":
+                                break;
+                            default:
+                                if (puentes.TryGetValue(key, out var puente))
+                                {
+                                    puente.Disconnect();
+                                }
+                                break;
+                        }
+                        Console.WriteLine(task.Exception);
                     }
-                    Console.WriteLine(task.Exception);
                 }
             }
-            Task.Run(UpdateAsync);
         }
 
         private void descriptPort()
@@ -220,13 +241,27 @@ namespace SerialToServer
         {
             if (!isOpen)
             {
-                process.Start();
+                try
+                {
+                    process.Start();
+                }
+                catch (Exception)
+                {
+
+                }
                 btnOpenServer.Text = "Stop Server";
                 isOpen = true;
             }
             else if (isOpen) 
             {
-                process.Kill();
+                try
+                {
+                    process.Start();
+                }
+                catch (Exception)
+                {
+
+                }
                 btnOpenServer.Text = "Start Server";
                 isOpen = false;
             }
