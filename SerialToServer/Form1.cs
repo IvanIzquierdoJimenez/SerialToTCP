@@ -37,6 +37,7 @@ namespace SerialToServer
         public static bool Mono = false;
         public Form1()
         {
+#if DEBUG
             Mono = Type.GetType ("Mono.Runtime") != null;
             if (!Mono)
             {
@@ -49,14 +50,33 @@ namespace SerialToServer
 
                 }
             }
+#endif
             InitializeComponent();
             RefreshPorts();
             descriptPort();
             
             process.StartInfo.FileName = @"server.exe";
+            process.StartInfo.UseShellExecute = false;
+#if !DEBUG
+            process.StartInfo.CreateNoWindow = true;
+#endif
             process.Start();
             btnOpenServer.Text = "Stop Server";
             isOpen = true;
+
+            AppDomain.CurrentDomain.ProcessExit += (s, a) => {
+                if (isOpen)
+                {
+                    try
+                    {
+                        process.Kill();
+                    }
+                    catch(Exception)
+                    {
+                        
+                    }
+                }
+            };
             
             timer.Interval = 10000;
             timer.Tick += new EventHandler((s,a) => {
@@ -256,9 +276,9 @@ namespace SerialToServer
             {
                 try
                 {
-                    process.Start();
+                    process.Kill();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
 
                 }
